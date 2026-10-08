@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.env
+data/recordings/*
+logs/*
+models/
+*.wav
+data/profile.json
+data/store.json
+tools/
+data/memory.json

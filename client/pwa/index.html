@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141417">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem("theme")||"auto"}catch(e){}</script>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="style.css?v=24">
+<title>Callie</title>
+</head>
+<body data-v="contacts">
+<div class="app">
+  <section class="screen" id="contacts"><div class="head"><h1>Contacts</h1><div><button class="t" data-act="edit">Edit</button><button class="ib" data-act="add-c" id="addc"></button></div></div><div class="body" id="list"></div></section>
+  <section class="screen" id="recents"><div class="head"><h1>Recents</h1></div><div class="body" id="rec"></div></section>
+  <section class="screen" id="schedule"><div class="head"><h1>Schedule</h1><div><button class="t" data-act="edit">Edit</button><button class="ib" data-act="add-s" id="adds"></button></div></div><div class="body" id="sch"></div></section>
+  <section class="screen" id="settings"><div class="head"><h1>Settings</h1></div><div class="body">
+    <div class="row"><span>Notifications</span><div class="tog" id="notify" data-act="notify"></div></div>
+    <div class="row"><span>Ringtone</span><select id="ring"></select></div>
+    <p class="hint">Ringtones play inside the app. "Phone default" uses your phone's own notification sound and vibration.</p>
+    <div class="row"><span>Theme</span><div class="themes" id="themes"></div></div>
+    <div class="row"><span>Microphone</span><select id="mic"></select></div>
+    <div class="meter"><i id="meter"></i></div>
+    <div class="row"><span>Remember conversations</span><div class="tog" id="memtog" data-act="memory"></div></div>
+    <div class="row" data-act="clear-memory"><span>Clear memories</span><span class="end">›</span></div>
+    <p class="hint">When on, Callie keeps short notes of your calls on this computer so you can pick up where you left off.</p>
+    <details class="info"><summary>About Callie</summary><div class="txt">
+      <p>Callie lets you talk with friendly AI companions by voice, as simply as making a phone call. Pick a contact, hear it ring, and have a real conversation: practise a language, think out loud, get some company, or just chat.</p>
+      <p>Every contact has its own name, voice and language. Callie always makes clear that you are talking to an AI. It can make mistakes, and it is not a substitute for professional, medical or emergency help.</p>
+    </div></details>
+    <details class="info"><summary>FAQ</summary><div class="txt">
+      <details class="faq"><summary>Is Callie a real person?</summary><p>No. Callie and every contact are AI voice companions. You hear this at the start of each call, and an "AI" badge stays on the call screen. They do not have real feelings or lives, and they can be wrong, so please double-check anything important such as health, legal or money matters.</p></details>
+      <details class="faq"><summary>Does Callie record or keep my calls?</summary><p>Callie does not save recordings of your voice. Your speech is processed only to understand you and to reply. By default Callie does not remember earlier calls. If you switch on "Remember conversations" in Settings, it keeps short written notes for each contact so you can continue where you left off, and you can switch that off or tap "Clear memories" at any time.</p></details>
+      <details class="faq"><summary>Why can't Callie hear me?</summary><p>First check that your microphone is not muted: look at your device's mute key or switch, and at the Mute button on the call screen. Then make sure you allowed microphone access when your browser asked. In Settings > Microphone you can pick a different microphone and watch the bar move while you speak. Headphones also help, because they stop the voice from echoing back into the microphone.</p></details>
+      <details class="faq"><summary>Can I choose a different voice, language or look?</summary><p>Yes. Tap + in Contacts to create a contact and choose a voice (such as female, male, girl, boy, old lady or old man) and a language: English, Kiswahili, Français, Español, Arabic, Chinese, Hindi or Portuguese. In Settings you can also change the theme and the ringtone. Voice quality can differ between languages and devices.</p></details>
+      <details class="faq"><summary>How do scheduled calls work?</summary><p>Open Schedule, tap +, choose a contact and a time. Every day at that time Callie rings you, just like an incoming call, and you tap Accept to talk. For now this works while Callie is open on your device and the sound is on. Calls that ring when the app is closed are planned for a later update.</p></details>
+    </div></details>
+    <div class="row" data-act="support"><span>Support</span><span class="end">›</span></div>
+    <div class="built" id="built">Built in Uganda, by Bryt Ma Tech UG</div></div></section>
+  <div id="idle"><img src="icons/icon-192.png" alt=""><h2>Callie</h2><p>Select a contact to start a call</p><small>Built in Uganda, by Bryt Ma Tech UG</small></div>
+  <div id="call"><div class="cinfo"><h2 id="cname"></h2><div id="csub"></div></div><div class="stage"><div class="av" id="cav"></div></div><p id="err"></p><div class="ctl" id="ctl"></div></div>
+  <nav class="tabs" id="tabs"></nav>
+  <div class="sheet" id="sheet-c"><h3>New contact</h3><input id="nm" placeholder="Name" maxlength="16" autocomplete="off">
+    <select id="lang"></select>
+    <div class="chips" id="chips"></div>
+    <button class="go" data-act="create-c">Create</button></div>
+  <div class="sheet" id="sheet-s"><h3>New schedule</h3><select id="sc"></select><input id="tm" type="time" value="07:00">
+    <button class="go" data-act="create-s">Add</button></div>
+  <div class="sheet" id="sheet-support"><h3>Support</h3>
+    <p class="hint2">Write to us and we'll help. Please mention your reference so we can find your case quickly.</p>
+    <div id="mails"></div>
+    <p class="hint2">Your reference: <b id="ref"></b></p>
+    <button class="go" data-act="close-sheet">Done</button></div>
+  <div id="toast"></div>
+</div>
+<script src="app.js?v=24"></script>
+</body>
+</html>

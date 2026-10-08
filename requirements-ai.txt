@@ -1,0 +1,5 @@
+# Install later, one at a time (see README)
+faster-whisper>=1.0
+silero-vad>=5.0
+ollama>=0.3
+piper-tts>=1.2
