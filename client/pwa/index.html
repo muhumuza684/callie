@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="stylesheet" href="style.css?v=24">
+<link rel="stylesheet" href="style.css?v=25">
 <title>Callie</title>
 </head>
 <body data-v="contacts">
@@ -24,8 +24,12 @@
     <div class="row"><span>Ringtone</span><select id="ring"></select></div>
     <p class="hint">Ringtones play inside the app. "Phone default" uses your phone's own notification sound and vibration.</p>
     <div class="row"><span>Theme</span><div class="themes" id="themes"></div></div>
-    <div class="row"><span>Microphone</span><select id="mic"></select></div>
-    <div class="meter"><i id="meter"></i></div>
+    <details class="info" id="micbox"><summary>Microphone</summary><div class="txt">
+      <select id="mic"></select>
+      <div class="meter"><i id="meter"></i></div>
+      <button class="mini pri" data-act="mictest" id="mictest">Test microphone</button>
+      <p class="hint2">Press Test, then speak: the bar moves when your microphone works. It listens only while the test is running.</p>
+    </div></details>
     <div class="row"><span>Remember conversations</span><div class="tog" id="memtog" data-act="memory"></div></div>
     <div class="row" data-act="clear-memory"><span>Clear memories</span><span class="end">›</span></div>
     <p class="hint">When on, Callie keeps short notes of your calls on this computer so you can pick up where you left off.</p>
@@ -36,7 +40,7 @@
     <details class="info"><summary>FAQ</summary><div class="txt">
       <details class="faq"><summary>Is Callie a real person?</summary><p>No. Callie and every contact are AI voice companions. You hear this at the start of each call, and an "AI" badge stays on the call screen. They do not have real feelings or lives, and they can be wrong, so please double-check anything important such as health, legal or money matters.</p></details>
       <details class="faq"><summary>Does Callie record or keep my calls?</summary><p>Callie does not save recordings of your voice. Your speech is processed only to understand you and to reply. By default Callie does not remember earlier calls. If you switch on "Remember conversations" in Settings, it keeps short written notes for each contact so you can continue where you left off, and you can switch that off or tap "Clear memories" at any time.</p></details>
-      <details class="faq"><summary>Why can't Callie hear me?</summary><p>First check that your microphone is not muted: look at your device's mute key or switch, and at the Mute button on the call screen. Then make sure you allowed microphone access when your browser asked. In Settings > Microphone you can pick a different microphone and watch the bar move while you speak. Headphones also help, because they stop the voice from echoing back into the microphone.</p></details>
+      <details class="faq"><summary>Why can't Callie hear me?</summary><p>First check that your microphone is not muted: look at your device's mute key or switch, and at the Mute button on the call screen. Then make sure you allowed microphone access when your browser asked. In Settings > Microphone you can pick a different microphone, press Test and watch the bar move while you speak. Headphones also help, because they stop the voice from echoing back into the microphone.</p></details>
       <details class="faq"><summary>Can I choose a different voice, language or look?</summary><p>Yes. Tap + in Contacts to create a contact and choose a voice (such as female, male, girl, boy, old lady or old man) and a language: English, Kiswahili, Français, Español, Arabic, Chinese, Hindi or Portuguese. In Settings you can also change the theme and the ringtone. Voice quality can differ between languages and devices.</p></details>
       <details class="faq"><summary>How do scheduled calls work?</summary><p>Open Schedule, tap +, choose a contact and a time. Every day at that time Callie rings you, just like an incoming call, and you tap Accept to talk. For now this works while Callie is open on your device and the sound is on. Calls that ring when the app is closed are planned for a later update.</p></details>
     </div></details>
@@ -58,6 +62,6 @@
     <button class="go" data-act="close-sheet">Done</button></div>
   <div id="toast"></div>
 </div>
-<script src="app.js?v=24"></script>
+<script src="app.js?v=25"></script>
 </body>
 </html>

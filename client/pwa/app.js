@@ -196,12 +196,13 @@ function stopMicTest() {
   cancelAnimationFrame(testRaf);
   if (testStream) testStream.getTracks().forEach(t => t.stop());
   if (testCtx) testCtx.close().catch(() => {});
-  testStream = testCtx = null; $("meter").style.width = "0";
+  testStream = testCtx = null; $("meter").style.width = "0"; $("mictest").textContent = "Test microphone";
 }
 async function startMicTest() {   // Settings: speak and watch the bar - pick another microphone if it stays flat
   stopMicTest();
   try { testStream = await getMic(); } catch (e) { note("mic", e.name); toast(NOTICES.micaccess); return; }
   await listMics();
+  $("mictest").textContent = "Stop test";
   testCtx = new AudioContext();
   const an = testCtx.createAnalyser(); an.fftSize = 1024;
   testCtx.createMediaStreamSource(testStream).connect(an);
@@ -214,7 +215,9 @@ async function startMicTest() {   // Settings: speak and watch the bar - pick an
   };
   loop();
 }
-$("mic").onchange = () => { localStorage.setItem("mic", $("mic").value); startMicTest(); };
+$("mic").onchange = () => { localStorage.setItem("mic", $("mic").value); if (testStream) startMicTest(); };
+$("micbox").addEventListener("toggle", () => { if ($("micbox").open) listMics().catch(() => {}); else stopMicTest(); });
+listMics().catch(() => {});
 
 // keep the phone screen on during a call
 async function keepAwake() { try { if ("wakeLock" in navigator) wake = await navigator.wakeLock.request("screen"); } catch (e) {} }
@@ -244,7 +247,7 @@ async function startCall(id, answered = false) {
   const t = performance.now();
   try {
     stream = await getMic();
-    await ctx.audioWorklet.addModule("worklet.js?v=24");
+    await ctx.audioWorklet.addModule("worklet.js?v=25");
   } catch (e) { note("mic", e.name); if (cid === callId) fail(NOTICES.micaccess); return; }
   if (cid !== callId) return;
   node = new AudioWorkletNode(ctx, "capture"); ctx.createMediaStreamSource(stream).connect(node);
@@ -314,7 +317,7 @@ document.addEventListener("click", async e => {
     else if (d.delc) { await api("/api/contacts/" + d.delc, "DELETE"); await load(); }
     else if (d.dels) { await api("/api/schedule/" + d.dels, "DELETE"); await load(); }
     else if (d.tog) { await api(`/api/schedule/${d.tog}/toggle`, "POST"); await load(); }
-    else if (d.tab) { if (busy) document.body.dataset.tab = d.tab; else view(d.tab); setEdit(false); if (!busy) { d.tab === "settings" ? startMicTest() : stopMicTest(); } }
+    else if (d.tab) { if (busy) document.body.dataset.tab = d.tab; else view(d.tab); setEdit(false); stopMicTest(); }
     else if (d.call) { if (!busy) startCall(d.call); }
     else if (d.voice) { document.querySelectorAll(".chip").forEach(c => c.classList.remove("on")); el.classList.add("on"); }
     else if (d.act === "edit") setEdit(document.body.dataset.edit !== "1");
@@ -337,7 +340,8 @@ document.addEventListener("click", async e => {
       toast(on ? "Callie will remember your calls" : "Memory is off");
     } else if (d.act === "clear-memory") {
       if (confirm("Delete everything Callie remembers about your calls?")) { await api("/api/memory", "DELETE"); toast("Memories cleared"); }
-    } else if (d.act === "support") { $("sheet-support").classList.add("open"); }
+    } else if (d.act === "mictest") { if (testStream) stopMicTest(); else await startMicTest(); }
+    else if (d.act === "support") { $("sheet-support").classList.add("open"); }
     else if (d.act === "close-sheet") { document.querySelectorAll(".sheet").forEach(x => x.classList.remove("open")); }
     else if (d.act === "write") { writeTo(d.addr); }
     else if (d.act === "copy") {

@@ -47,3 +47,8 @@ def test_five_ringtones_plus_phone_default():
 def test_javascript_parses():
     r = subprocess.run(["node", "--check", str(PWA / "app.js")], capture_output=True, text=True)
     assert r.returncode == 0, r.stderr
+
+
+def test_settings_never_opens_the_microphone_by_itself():
+    assert "startMicTest()" not in re.search(r'else if \(d\.tab\).*', JS).group(0)
+    assert 'data-act="mictest"' in HTML and 'id="micbox"' in HTML      # the test is opt-in and tucked away
