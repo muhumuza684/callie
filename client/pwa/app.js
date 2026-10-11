@@ -374,3 +374,7 @@ $("ring").onchange = async () => {
 document.body.dataset.edit = "0";
 (function boot() { load().catch(() => { note("net", "boot"); toast("You seem to be offline. Reconnecting…"); setTimeout(boot, 5000); }); })();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+
+// tells the desktop app this window is still open
+const ping = () => fetch("/api/ping", { method: "POST" }).catch(() => {});
+ping(); setInterval(ping, 20000);

@@ -6,7 +6,9 @@ import secrets
 from datetime import datetime
 from pathlib import Path
 
-PATH = Path(__file__).resolve().parent.parent / "data" / "store.json"
+from server import config
+
+PATH = config.HOME / "data" / "store.json"
 VOICES = ("female", "male", "girl", "boy", "baby", "adult", "old_lady", "old_man", "stranger")
 LEGACY = {"lady": "female", "man": "male"}
 DEFAULT = {

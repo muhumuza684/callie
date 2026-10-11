@@ -1,0 +1,11 @@
+stt
+llm
+tts
+vad
+conversation/session.py
+audio/lab.py
+audio/stft.py
+requirements-ai.txt
+requirements-audio.txt
+tests/test_audio.py
+data/recordings

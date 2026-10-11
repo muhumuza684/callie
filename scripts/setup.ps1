@@ -16,7 +16,7 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 (Get-Content .env) -replace 'GROQ_LLM_MODEL=llama-3.1-8b-instant','GROQ_LLM_MODEL=openai/gpt-oss-20b' -replace 'GREETING=Hello! How can I help\?','GREETING=Hi, it''s Callie. How can I help?' | Set-Content .env -Encoding ascii
 
 Write-Host "`nRunning tests..." -ForegroundColor Cyan
-& $vpy -m pytest -q tests --ignore=tests/test_audio.py
+& $vpy -m pytest -q tests
 if ($LASTEXITCODE -ne 0) { throw "Tests failed - paste the output above into the chat." }
 
 if (-not (Select-String -Path .env -Pattern '^GROQ_API_KEY=\S' -Quiet)) { & .\scripts\configure.ps1 }

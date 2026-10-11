@@ -1,5 +1,5 @@
 # Callie launcher: finds the project, offers updates from your Downloads, installs what is missing, starts Callie.
-param([ValidateSet("menu", "pc", "phone", "folder", "code", "push")][string]$Mode = "menu")
+param([ValidateSet("menu", "pc", "phone", "folder", "code", "push", "release", "clean")][string]$Mode = "menu")
 $Root = Split-Path $PSScriptRoot -Parent
 Set-Location $Root
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
@@ -24,6 +24,13 @@ if ($zip -and (Get-Version $zip.Name) -gt $installed) {
         Expand-Archive $zip.FullName -DestinationPath $tmp -Force
         $src = Get-ChildItem $tmp -Directory | Select-Object -First 1
         robocopy $src.FullName $Root /E /XD .venv data tools /XF .env /NFL /NDL /NJH /NJS /NP | Out-Null
+        $stale = Join-Path $Root "scripts\stale.txt"      # files the new version no longer uses: remove them so old rubbish never gets committed
+        if (Test-Path $stale) {
+            foreach ($rel in (Get-Content $stale | Where-Object { $_.Trim() })) {
+                $rel = $rel.Trim()
+                if ($rel -notmatch '\.\.' -and $rel -notmatch '^(\.env|data)$') { Remove-Item (Join-Path $Root $rel) -Recurse -Force -ErrorAction SilentlyContinue }
+            }
+        }
         $installed = Get-Version $zip.Name
         Write-Host "Updated to v$installed (your .env, contacts and settings were kept)." -ForegroundColor Green
     }
@@ -55,9 +62,13 @@ if ($Mode -eq "menu") {
     Write-Host "  3) Open the Callie folder"
     Write-Host "  4) Open the Callie folder in VS Code"
     Write-Host "  5) Save and push to GitHub"
+    Write-Host "  6) Publish a release (GitHub builds the apps)"
+    Write-Host "  7) Free up disk space"
     $c = Read-Host "Choose (Enter = 1)"
-    $Mode = switch ($c) { "2" { "phone" } "3" { "folder" } "4" { "code" } "5" { "push" } default { "pc" } }
+    $Mode = switch ($c) { "2" { "phone" } "3" { "folder" } "4" { "code" } "5" { "push" } "6" { "release" } "7" { "clean" } default { "pc" } }
 }
+if ($Mode -eq "release") { & "$Root\scripts\release.ps1"; return }
+if ($Mode -eq "clean") { & "$Root\scripts\clean.ps1"; return }
 if ($Mode -eq "push") { & "$Root\scripts\push.ps1"; return }
 if ($Mode -eq "folder") { Start-Process explorer.exe $Root; return }
 if ($Mode -eq "code") {

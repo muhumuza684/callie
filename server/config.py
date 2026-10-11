@@ -1,10 +1,16 @@
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / ".env")
+# RESOURCE_DIR: the program and its web files (inside the .exe when packaged).
+# HOME: where the user's data lives (key, contacts, memory, logs) - the project folder, or CALLIE_HOME for the desktop app.
+RESOURCE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+HOME = Path(os.environ["CALLIE_HOME"]) if os.environ.get("CALLIE_HOME") else Path(__file__).resolve().parent.parent
+BASE_DIR = HOME
+ENV_PATH = HOME / ".env"
+load_dotenv(ENV_PATH)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 LLM_MODEL = os.getenv("GROQ_LLM_MODEL", "openai/gpt-oss-20b")
@@ -96,4 +102,4 @@ def greeting_for(c: dict) -> str:
     return lang_info(c.get("lang"))["greeting"].format(name=c["name"])
 
 SUPPORT_EMAILS = [e.strip() for e in os.getenv("SUPPORT_EMAILS", "muhumuzabright26@gmail.com,brytma616@gmail.com").split(",") if e.strip()]
-VERSION = (BASE_DIR / "VERSION").read_text().strip() if (BASE_DIR / "VERSION").exists() else ""
+VERSION = (RESOURCE_DIR / "VERSION").read_text().strip() if (RESOURCE_DIR / "VERSION").exists() else ""

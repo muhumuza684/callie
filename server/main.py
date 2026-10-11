@@ -1,12 +1,14 @@
 """Voice AI server. NOTE: static mount MUST come after API/WebSocket routes,
 otherwise the "/" mount swallows /health and /ws/voice."""
 import logging
+import os
+import time
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from typing import Literal
@@ -17,15 +19,15 @@ from pydantic import BaseModel, Field
 from server import config, memory, store
 from server.ws import handle_voice_socket
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-PWA_DIR = BASE_DIR / "client" / "pwa"
+PWA_DIR = config.RESOURCE_DIR / "client" / "pwa"
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("voice-ai")
 
 # technical details go to a file only the owners read
-(BASE_DIR / "logs").mkdir(exist_ok=True)
-_fh = RotatingFileHandler(BASE_DIR / "logs" / "callie.log", maxBytes=1_000_000, backupCount=3, encoding="utf-8")
+LOG_DIR = config.HOME / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+_fh = RotatingFileHandler(LOG_DIR / "callie.log", maxBytes=1_000_000, backupCount=3, encoding="utf-8")
 _fh.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
 logging.getLogger().addHandler(_fh)
 
@@ -126,6 +128,44 @@ async def del_schedule(sid: str):
     d = store.load()
     d["schedule"] = [x for x in d["schedule"] if x["id"] != sid]
     store.save(d)
+    return {"ok": True}
+
+
+STATE = {"ping": 0.0}
+
+
+@app.api_route("/api/ping", methods=["GET", "POST"])
+async def ping():
+    STATE["ping"] = time.monotonic()      # the desktop app closes itself when its window stops pinging
+    return {"ok": True}
+
+
+class SetupIn(BaseModel):
+    key: str = Field(min_length=20, max_length=200, pattern=r"^gsk_[A-Za-z0-9_\-]+$")
+
+
+def _write_env_key(key: str):
+    lines = config.ENV_PATH.read_text().splitlines() if config.ENV_PATH.exists() else []
+    lines = [ln for ln in lines if not ln.startswith("GROQ_API_KEY=")] + [f"GROQ_API_KEY={key}"]
+    config.ENV_PATH.parent.mkdir(parents=True, exist_ok=True)
+    config.ENV_PATH.write_text("\n".join(lines) + "\n")
+
+
+@app.get("/setup")
+async def setup_page():
+    return FileResponse(PWA_DIR / "setup.html")
+
+
+@app.post("/api/setup")
+async def setup(body: SetupIn, request: Request):
+    """First run only, from this computer only (never through a shared link): saves the access key."""
+    shared = any(h in request.headers for h in ("x-forwarded-for", "cf-connecting-ip", "forwarded"))
+    local = request.client is not None and request.client.host in ("127.0.0.1", "::1", "testclient")
+    if config.GROQ_API_KEY or shared or not local:
+        raise HTTPException(403, "closed")
+    _write_env_key(body.key)
+    config.GROQ_API_KEY = body.key
+    os.environ["GROQ_API_KEY"] = body.key
     return {"ok": True}
 
 

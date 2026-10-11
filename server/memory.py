@@ -3,7 +3,9 @@ stored only on this computer in data/memory.json."""
 import json
 from pathlib import Path
 
-PATH = Path(__file__).resolve().parent.parent / "data" / "memory.json"
+from server import config
+
+PATH = config.HOME / "data" / "memory.json"
 MAX_RECENT = 20
 
 

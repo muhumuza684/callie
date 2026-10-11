@@ -5,7 +5,9 @@ import re
 from collections import Counter, defaultdict
 from pathlib import Path
 
-PROFILE_PATH = Path(__file__).resolve().parent.parent / "data" / "profile.json"
+from server import config
+
+PROFILE_PATH = config.HOME / "data" / "profile.json"
 
 TOPICS = {
     "music": ["music", "song", "album", "singer", "concert", "playlist"],

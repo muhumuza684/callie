@@ -9,3 +9,6 @@ data/profile.json
 data/store.json
 tools/
 data/memory.json
+dist/
+build/
+*.exe
