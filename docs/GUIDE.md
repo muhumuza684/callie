@@ -79,7 +79,7 @@ It holds your key (`.env`), contacts and schedule (`data/store.json`), memory (`
 
 | What happens | What to do |
 |---|---|
-| Nobody hears me | Your microphone may be muted: check the mute key on your keyboard, then Settings > Microphone > Test. Allow microphone access when the browser asks |
+| Nobody hears me | Check your device's mute key, then open Settings > Microphone: press **Allow microphone** and **Test**. On a phone, make sure the browser is allowed to use the microphone (site settings) and that no other app is using it |
 | "Your connection is weak" | Check your internet. If you use a VPN, switch it off and try again |
 | Only a simple voice | Accept the voice terms (see First run), then restart Callie |
 | A language has no voice | Install a voice for it in your system's speech settings |

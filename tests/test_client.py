@@ -52,3 +52,17 @@ def test_javascript_parses():
 def test_settings_never_opens_the_microphone_by_itself():
     assert "startMicTest()" not in re.search(r'else if \(d\.tab\).*', JS).group(0)
     assert 'data-act="mictest"' in HTML and 'id="micbox"' in HTML      # the test is opt-in and tucked away
+
+
+def test_quiet_time_never_triggers_the_cant_hear_you_warning_early():
+    assert "silent === 750" in JS and "!speaking" in JS            # 15 s of the caller's own quiet, never while Callie speaks
+    assert "quiet === 150" not in JS                               # the old 3-second alarm
+    assert "track.onmute" in JS and "track.onunmute" in JS         # the device's real mute signal clears or raises it
+    assert "micWarned" in JS                                       # and the warning goes away once sound is heard
+
+
+def test_microphone_permission_has_a_visible_status_and_an_allow_button():
+    assert 'id="micstate"' in HTML and 'data-act="micallow"' in HTML
+    assert "permissions.query" in JS and "micError" in JS
+    for name in ("micblocked", "micnone", "micbusy", "secure"):
+        assert f"{name}:" in JS, name

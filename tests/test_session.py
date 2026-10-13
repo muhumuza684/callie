@@ -150,7 +150,7 @@ def test_other_language_greeting_and_no_orpheus():
     asyncio.run(go())
 
 
-def test_silent_microphone_is_reported():
+def test_silent_microphone_is_logged_but_never_alarms_the_caller(caplog):
     async def go():
         sent = []
 
@@ -161,9 +161,13 @@ def test_silent_microphone_is_reported():
         for f in frames(0.0, 500):
             s.feed(f)
         await asyncio.sleep(0.05)
-        assert {"type": "notice", "code": "mic"} in sent
+        return sent
 
-    asyncio.run(go())
+    import logging
+    with caplog.at_level(logging.WARNING, logger="voice-ai.session"):
+        sent = asyncio.run(go())
+    assert not [m for m in sent if m["type"] in ("notice", "error")]       # phones send exact zeros while you are quiet
+    assert "only silence" in caplog.text
 
 
 def test_whisper_noise_filtered():

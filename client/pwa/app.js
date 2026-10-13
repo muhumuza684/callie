@@ -14,7 +14,7 @@ let LABEL = {}, vprof = { rate: 1, pitch: 1, speech: 1, gender: "f", lang: "en-U
 const MIN_RING = 1600;
 let S = { contacts: [], recents: [], schedule: [] };
 let ws, ctx, stream, node, cur, callId = 0, busy = false, muted = false, ringId, timerId, t0;
-let wake = null, quiet = 0, testStream, testCtx, testRaf;
+let wake = null, heard = false, silent = 0, micWarned = false, testStream, testCtx, testRaf;
 let pending = 0, gen = 0, speaking = false, minTurn = 0, voice = null, audioNext = 0, audioChain = Promise.resolve();
 const sources = new Set(), fired = new Set();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -30,6 +30,10 @@ const NOTICES = {
   busy: "Callie is busy right now. Please try again shortly.",
   mic: "We can't hear you. Please check that your microphone isn't muted.",
   micaccess: "We couldn't use your microphone. Please allow microphone access and try again.",
+  micblocked: "Microphone access is blocked. Please allow it in your browser's site settings, then try again.",
+  micnone: "No microphone was found on this device.",
+  micbusy: "Your microphone is being used by another app. Please close it and try again.",
+  secure: "Callie needs a secure connection to use the microphone. Please open the secure link.",
   config: "Callie is unavailable right now. Please try again later.",
   generic: "Something went wrong. Please try again.",
 };
@@ -180,6 +184,31 @@ function onAudio(buf) {
 }
 
 // ---------- microphone ----------
+function micError(e) {          // one friendly sentence for every way the microphone can fail
+  note("mic", e && e.name);
+  if (!navigator.mediaDevices) return NOTICES.secure;
+  switch (e && e.name) {
+    case "NotAllowedError": case "SecurityError": return NOTICES.micblocked;
+    case "NotFoundError": case "OverconstrainedError": return NOTICES.micnone;
+    case "NotReadableError": case "AbortError": return NOTICES.micbusy;
+    default: return NOTICES.micaccess;
+  }
+}
+let micPerm = null;
+async function refreshMicState() {
+  let st = "unknown";
+  try {
+    micPerm = micPerm || await navigator.permissions.query({ name: "microphone" });
+    micPerm.onchange = refreshMicState; st = micPerm.state;
+  } catch (e) {}
+  $("micstate").textContent = {
+    granted: "Microphone access is allowed.",
+    prompt: "Callie asks for microphone access when you make a call. You can allow it now.",
+    denied: "Microphone access is blocked. Open your browser's site settings for this address, allow the microphone, then reload.",
+    unknown: "Press Allow microphone so Callie can hear you.",
+  }[st];
+  $("micallow").hidden = st === "granted" || st === "denied";
+}
 async function getMic() {
   const base = { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 };
   const id = localStorage.getItem("mic");
@@ -200,7 +229,7 @@ function stopMicTest() {
 }
 async function startMicTest() {   // Settings: speak and watch the bar - pick another microphone if it stays flat
   stopMicTest();
-  try { testStream = await getMic(); } catch (e) { note("mic", e.name); toast(NOTICES.micaccess); return; }
+  try { testStream = await getMic(); } catch (e) { toast(micError(e)); return; }
   await listMics();
   $("mictest").textContent = "Stop test";
   testCtx = new AudioContext();
@@ -216,12 +245,16 @@ async function startMicTest() {   // Settings: speak and watch the bar - pick an
   loop();
 }
 $("mic").onchange = () => { localStorage.setItem("mic", $("mic").value); if (testStream) startMicTest(); };
-$("micbox").addEventListener("toggle", () => { if ($("micbox").open) listMics().catch(() => {}); else stopMicTest(); });
+$("micbox").addEventListener("toggle", () => { if ($("micbox").open) { listMics().catch(() => {}); refreshMicState(); } else stopMicTest(); });
 listMics().catch(() => {});
 
 // keep the phone screen on during a call
 async function keepAwake() { try { if ("wakeLock" in navigator) wake = await navigator.wakeLock.request("screen"); } catch (e) {} }
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && document.body.dataset.v === "live") keepAwake(); });
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  if (ctx && ctx.state !== "running") ctx.resume().catch(() => {});      // phones pause audio when the screen was off
+  if (document.body.dataset.v === "live") keepAwake();
+});
 
 // ---------- call screen ----------
 const cb = (act, cls, icon, label) => `<div class="cb"><button class="rb ${cls}" data-act="${act}" aria-label="${label}">${icon}</button><span>${label}</span></div>`;
@@ -239,7 +272,7 @@ function live() {
 }
 async function startCall(id, answered = false) {
   cur = find(id); if (!cur) return;
-  stopMicTest(); quiet = 0;
+  stopMicTest(); heard = false; silent = 0; micWarned = false;
   const cid = ++callId; busy = true; $("err").textContent = "";
   if (ctx) ctx.close().catch(() => {});
   show(cur, answered ? "Connecting…" : "Calling…", endB, "calling");
@@ -247,8 +280,14 @@ async function startCall(id, answered = false) {
   const t = performance.now();
   try {
     stream = await getMic();
-    await ctx.audioWorklet.addModule("worklet.js?v=25");
-  } catch (e) { note("mic", e.name); if (cid === callId) fail(NOTICES.micaccess); return; }
+    if (ctx.state !== "running") await ctx.resume();           // some phones pause audio while the permission box is open
+    const track = stream.getAudioTracks()[0];
+    if (track) {                                               // the browser tells us when the device itself mutes the microphone
+      track.onmute = () => { note("mic", "muted"); $("err").textContent = NOTICES.mic; };
+      track.onunmute = () => { if ($("err").textContent === NOTICES.mic) $("err").textContent = ""; };
+    }
+    await ctx.audioWorklet.addModule("worklet.js?v=27");
+  } catch (e) { const msg = micError(e); if (cid === callId) fail(msg); return; }
   if (cid !== callId) return;
   node = new AudioWorkletNode(ctx, "capture"); ctx.createMediaStreamSource(stream).connect(node);
   const wait = (answered ? 300 : MIN_RING) - (performance.now() - t); if (wait > 0) await sleep(wait);
@@ -260,8 +299,11 @@ async function startCall(id, answered = false) {
   node.port.onmessage = e => {
     const a = new Int16Array(e.data); let sum = 0;
     for (let i = 0; i < a.length; i++) sum += a[i] * a[i];
-    quiet = sum === 0 ? quiet + 1 : 0;
-    if (quiet === 150 && document.body.dataset.v === "live") { note("mic", "silent"); $("err").textContent = NOTICES.mic; }
+    if (sum > 0) {                 // any sound at all means the microphone works
+      heard = true;
+      if (micWarned) { micWarned = false; if ($("err").textContent === NOTICES.mic) $("err").textContent = ""; }
+    } else if (!speaking && document.body.dataset.v === "live") silent++;     // only the caller's own quiet time counts
+    if (!heard && silent === 750) { micWarned = true; note("mic", "silent"); $("err").textContent = NOTICES.mic; }   // 15 s and never a sound
     document.querySelector(".stage").style.setProperty("--lvl", Math.min(1, Math.sqrt(sum / a.length) / 32768 * 10).toFixed(2));  // ring grows with your voice
     if (document.body.dataset.v === "live" && ws && ws.readyState === 1) ws.send(muted ? new Int16Array(320).buffer : e.data);
   };
@@ -340,6 +382,9 @@ document.addEventListener("click", async e => {
       toast(on ? "Callie will remember your calls" : "Memory is off");
     } else if (d.act === "clear-memory") {
       if (confirm("Delete everything Callie remembers about your calls?")) { await api("/api/memory", "DELETE"); toast("Memories cleared"); }
+    } else if (d.act === "micallow") {
+      try { const st = await getMic(); st.getTracks().forEach(t => t.stop()); toast("Microphone allowed"); await listMics(); } catch (e) { toast(micError(e)); }
+      refreshMicState();
     } else if (d.act === "mictest") { if (testStream) stopMicTest(); else await startMicTest(); }
     else if (d.act === "support") { $("sheet-support").classList.add("open"); }
     else if (d.act === "close-sheet") { document.querySelectorAll(".sheet").forEach(x => x.classList.remove("open")); }
@@ -378,3 +423,5 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catc
 // tells the desktop app this window is still open
 const ping = () => fetch("/api/ping", { method: "POST" }).catch(() => {});
 ping(); setInterval(ping, 20000);
+
+refreshMicState();

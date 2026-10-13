@@ -232,9 +232,8 @@ class VoiceSession:
         self._frames += 1
         self._peak = max(self._peak, rms)
         self._max_all = max(self._max_all, rms)
-        if self._frames == 500 and self._max_all < 0.0005:     # 10 s of pure silence from the browser
-            asyncio.get_running_loop().create_task(self.send(
-                {"type": "notice", "code": "mic"}))
+        if self._frames == 500 and self._max_all < 0.0005:     # only logged: phones often send exact zeros while the caller is quiet
+            log.warning("[%s] the microphone has sent only silence for 10 s", self.ref)
         if self._frames % 250 == 0:      # every 5 s: shows whether your voice reaches the server
             log.info("mic: peak %.3f, threshold %.3f, noise %.3f, ai_active=%s", self._peak, thr, self.noise, active)
             self._peak = 0.0
