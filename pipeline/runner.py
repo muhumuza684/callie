@@ -12,7 +12,7 @@ import numpy as np
 
 from audio.pcm import pcm16_to_float
 from audio.voice_features import Baseline, analyze
-from conversation.profile import default_profile, is_laughing, text_mood
+from conversation.profile import Profile, default_profile, is_laughing, text_mood
 from server import config, memory
 from server.groq import GroqClient, ServiceError
 
@@ -101,7 +101,7 @@ class VoiceSession:
         self.ref = "-"        # support reference of the caller's device, used only in the owner's log
         self.audio["lang"] = config.lang_info(self.lang)["bcp47"]
         self.baseline = Baseline()
-        self.profile = profile or default_profile()
+        self.profile = profile or (Profile(None) if config.HOSTED else default_profile())   # hosted: nothing is shared between people
 
         async def _nobytes(b):
             pass
@@ -148,12 +148,15 @@ class VoiceSession:
             await self.send({"type": "say", "turn": self.turn_id, "text": plain(greeting)})
 
     def natural(self) -> bool:
-        return (config.TTS_MODE == "orpheus" and self.en and not VoiceSession.voice_blocked and hasattr(self.groq, "speak")
-                and time.monotonic() >= self.tts_off_until)
+        if not hasattr(self.groq, "speak") or time.monotonic() < self.tts_off_until:
+            return False
+        if self.lang == "lg":                  # Luganda speaks through Sunbird whenever its token is set
+            return bool(config.SUNBIRD_TOKEN)
+        return config.TTS_MODE == "orpheus" and self.en and not VoiceSession.voice_blocked
 
     async def speak_chunks(self, tid: int, sentences, t0: float):
         chunks = pack_chunks(sentences)
-        tasks = [asyncio.get_running_loop().create_task(self.groq.speak(c, self.voice)) for c in chunks]
+        tasks = [asyncio.get_running_loop().create_task(self.groq.speak(c, self.voice, **({"lang": "lg"} if self.lang == "lg" else {}))) for c in chunks]
         for t in tasks:
             t.add_done_callback(lambda f: f.cancelled() or f.exception())
         try:
@@ -314,7 +317,7 @@ class VoiceSession:
             natural = self.natural()
             spoken = []
             # keep the system prompt forever; only trim older chat turns
-            note = REMINDER + (" " + DIRECTIONS if natural else "")
+            note = REMINDER + (" " + DIRECTIONS if natural and self.en else "")
             felt = {"excited": "louder, higher and faster than usual (energetic)",
                     "low": "quieter and slower than usual (maybe tired or subdued)",
                     "laughing": "amused and laughing"}.get(mood)
@@ -324,7 +327,7 @@ class VoiceSession:
             if memory:
                 note += " " + memory
             msgs = [self.history[0], *self.history[1:][-12:], {"role": "system", "content": note}]
-            async with aclosing(self.groq.stream_chat(msgs)) as stream:
+            async with aclosing(self.groq.stream_chat(msgs, **({"lang": "lg"} if self.lang == "lg" else {}))) as stream:
                 async for tok in stream:
                     buf += tok
                     while (p := pop_sentence(buf)):
@@ -335,7 +338,7 @@ class VoiceSession:
                             first = True
                             log.info("first words ready %.1fs after you stopped talking", time.monotonic() - t0)
                         if natural:
-                            spoken.append(clean(sent))
+                            spoken.append(clean(sent) if self.en else plain(sent))      # [directions] are read aloud by other voices
                         elif plain(sent):
                             await self.send({"type": "say", "turn": tid, "text": plain(sent)})
                         n += is_end
@@ -345,7 +348,7 @@ class VoiceSession:
             if clean(buf):
                 reply += buf
                 if natural:
-                    spoken.append(clean(buf))
+                    spoken.append(clean(buf) if self.en else plain(buf))
                 elif plain(buf):
                     await self.send({"type": "say", "turn": tid, "text": plain(buf)})
             filler.cancel()

@@ -16,7 +16,7 @@ from typing import Literal
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
-from server import config, memory, store
+from server import auth, config, memory, store
 from server.ws import handle_voice_socket
 
 PWA_DIR = config.RESOURCE_DIR / "client" / "pwa"
@@ -54,7 +54,7 @@ async def health():
 class ContactIn(BaseModel):
     name: str = Field(min_length=1, max_length=16)
     voice: Literal["female", "male", "girl", "boy", "baby", "adult", "old_lady", "old_man", "stranger"]
-    lang: Literal["en", "sw", "fr", "es", "ar", "zh", "hi", "pt"] = "en"
+    lang: Literal["en", "sw", "lg", "fr", "es", "de", "ar", "zh", "hi", "pt"] = "en"
 
 
 class ScheduleIn(BaseModel):
@@ -65,8 +65,8 @@ class ScheduleIn(BaseModel):
 @app.get("/api/state")
 async def state():
     return {**store.load(), "types": [{"id": k, "label": v["label"]} for k, v in config.TYPES.items()],
-            "langs": [{"id": k, "label": v["native"]} for k, v in config.LANGS.items()],
-            "support": config.SUPPORT_EMAILS, "version": config.VERSION}
+            "langs": [{"id": k, "label": v["native"]} for k, v in config.languages_available().items()],
+            "support": config.SUPPORT_EMAILS, "version": config.VERSION, "hosted": config.HOSTED}
 
 
 @app.post("/api/contacts")
@@ -131,6 +131,70 @@ async def del_schedule(sid: str):
     return {"ok": True}
 
 
+PUBLIC_API = {"/api/login", "/api/ping", "/api/setup"}
+_login_hits: dict = {}
+
+
+@app.middleware("http")
+async def _sign_in_required(request: Request, call_next):
+    ok, uid = auth.identify(request.cookies)
+    path = request.url.path
+    if config.HOSTED and path.startswith("/api/") and path not in PUBLIC_API and not ok:
+        return JSONResponse({"error": "signin"}, status_code=401)
+    token = auth.USER.set(uid)
+    try:
+        return await call_next(request)
+    finally:
+        auth.USER.reset(token)
+
+
+class LoginIn(BaseModel):
+    code: str = Field(min_length=1, max_length=64)
+    agree: bool
+
+
+@app.get("/login")
+async def login_page():
+    return FileResponse(PWA_DIR / "login.html")
+
+
+@app.post("/api/login")
+async def login(body: LoginIn, request: Request):
+    if not config.HOSTED:
+        raise HTTPException(404, "not found")
+    ip = request.client.host if request.client else "?"
+    now = time.monotonic()
+    hits = [t for t in _login_hits.get(ip, []) if now - t < 60]
+    if len(hits) >= 10:
+        raise HTTPException(429, "slow down")
+    _login_hits[ip] = hits + [now]
+    if not body.agree:
+        raise HTTPException(400, "agreement needed")
+    if not auth.check_code(body.code):
+        raise HTTPException(403, "code")
+    resp = JSONResponse({"ok": True})
+    secure = request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https"
+    resp.set_cookie(auth.COOKIE, auth.sign(auth.new_user()), max_age=180 * 86400, httponly=True, samesite="lax", secure=secure)
+    return resp
+
+
+@app.post("/api/logout")
+async def logout():
+    resp = JSONResponse({"ok": True})
+    resp.delete_cookie(auth.COOKIE)
+    return resp
+
+
+@app.delete("/api/me")
+async def delete_me():
+    uid = auth.USER.get()
+    if config.HOSTED and uid:
+        auth.delete_user(uid)
+    resp = JSONResponse({"ok": True})
+    resp.delete_cookie(auth.COOKIE)
+    return resp
+
+
 STATE = {"ping": 0.0}
 
 
@@ -161,7 +225,7 @@ async def setup(body: SetupIn, request: Request):
     """First run only, from this computer only (never through a shared link): saves the access key."""
     shared = any(h in request.headers for h in ("x-forwarded-for", "cf-connecting-ip", "forwarded"))
     local = request.client is not None and request.client.host in ("127.0.0.1", "::1", "testclient")
-    if config.GROQ_API_KEY or shared or not local:
+    if config.GROQ_API_KEY or shared or not local or config.HOSTED:
         raise HTTPException(403, "closed")
     _write_env_key(body.key)
     config.GROQ_API_KEY = body.key

@@ -1,0 +1,26 @@
+# Template for Fly.io (check Fly's current docs for names and prices). Use:
+#   fly launch --no-deploy --copy-config --dockerfile ../Dockerfile
+#   fly volumes create callie_data --size 1
+#   fly secrets set GROQ_API_KEY=... INVITE_CODES=code1,code2
+#   fly deploy
+app = "callie-change-me"
+primary_region = "jnb"          # choose the region nearest your users
+
+[env]
+  CALLIE_MODE = "hosted"
+  CALLIE_HOME = "/data"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "off"    # keep it awake: a sleeping server makes the first call wait
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[mounts]]
+  source = "callie_data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

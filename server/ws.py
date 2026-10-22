@@ -10,7 +10,7 @@ import time
 from fastapi import WebSocket
 
 from pipeline.runner import VoiceSession
-from server import config, store
+from server import auth, config, limits, store
 
 log = logging.getLogger("voice-ai.ws")
 
@@ -37,14 +37,27 @@ async def handle_voice_socket(ws: WebSocket):
         await ws.close()
         return
 
-    who = store.contact(ws.query_params.get("contact"))
+    ok, uid = auth.identify(ws.cookies)
+    if not ok:
+        await send({"type": "notice", "code": "signin"})
+        await ws.close()
+        return
+    auth.USER.set(uid)
+    why = limits.can_start(uid)
+    if why:
+        await send({"type": "notice", "code": why})
+        await ws.close()
+        return
+    limits.start(uid)
     started = time.monotonic()
-    session = VoiceSession(send, send_bytes=send_bytes, contact=who, memory_on=store.load()["settings"]["memory"])
-    session.ref = ref
-    log.info("[%s] call started with %s", ref, who["name"] if who else "default")
-    await send({"type": "ready", "voice": session.audio})
-    await session.greet()
-    try:
+    session, who = None, None
+    try:                      # everything after the slot is taken is inside the try, so the slot is always given back
+        who = store.contact(ws.query_params.get("contact"))
+        session = VoiceSession(send, send_bytes=send_bytes, contact=who, memory_on=store.load()["settings"]["memory"])
+        session.ref = ref
+        log.info("[%s] call started with %s", ref, who["name"] if who else "default")
+        await send({"type": "ready", "voice": session.audio})
+        await session.greet()
         while True:
             msg = await ws.receive()
             if msg["type"] == "websocket.disconnect":
@@ -58,12 +71,14 @@ async def handle_voice_socket(ws: WebSocket):
                 elif data.get("type") == "hangup":
                     break
     finally:
-        try:
-            await asyncio.wait_for(session.remember(), 15)
-        except Exception as e:
-            log.warning("[%s] memory not saved: %r", ref, e)
-        await session.close()
+        if session is not None:
+            try:
+                await asyncio.wait_for(session.remember(), 15)
+            except Exception as e:
+                log.warning("[%s] memory not saved: %r", ref, e)
+            await session.close()
         secs = int(time.monotonic() - started)
+        limits.end(uid, secs)
         log.info("[%s] call ended after %ds", ref, secs)
         if who and secs > 3:
             store.add_recent(who["id"], secs)

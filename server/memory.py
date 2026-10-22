@@ -3,25 +3,32 @@ stored only on this computer in data/memory.json."""
 import json
 from pathlib import Path
 
-from server import config
+from server import auth, config
 
 PATH = config.HOME / "data" / "memory.json"
 MAX_RECENT = 20
 
 
+def _path():
+    u = auth.USER.get()
+    return (config.HOME / "users" / u / "data" / "memory.json") if u else PATH
+
+
 def _load() -> dict:
-    if PATH and PATH.exists():
+    p = _path()
+    if p and p.exists():
         try:
-            return json.loads(PATH.read_text())
+            return json.loads(p.read_text())
         except Exception:
             pass
     return {}
 
 
 def _save(d: dict):
-    if PATH:
-        PATH.parent.mkdir(parents=True, exist_ok=True)
-        PATH.write_text(json.dumps(d))
+    p = _path()
+    if p:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(d))
 
 
 def get(cid: str) -> dict:

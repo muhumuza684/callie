@@ -79,10 +79,14 @@ LANGS = {   # code -> names, browser voice language, greeting (an AI disclosure)
                greeting="Hi, it's {name}, an AI voice companion. How can I help?"),
     "sw": dict(name="Swahili", native="Kiswahili", bcp47="sw-KE", wait="Subiri kidogo.",
                greeting="Habari, mimi ni {name}, msaidizi wa sauti wa AI. Nikusaidie vipi?"),
+    "lg": dict(name="Luganda", native="Oluganda", bcp47="lg-UG", wait="Linda katono.",       # needs the Sunbird token; greeting to be checked by a native speaker
+               greeting="Oli otya, nze {name}, omuyambi wo ow'eddoboozi owa AI. Nkuyambe ntya?"),
     "fr": dict(name="French", native="Français", bcp47="fr-FR", wait="Un instant.",
                greeting="Bonjour, c'est {name}, un assistant vocal IA. Comment puis-je vous aider ?"),
     "es": dict(name="Spanish", native="Español", bcp47="es-ES", wait="Un momento.",
                greeting="Hola, soy {name}, un asistente de voz con IA. ¿En qué puedo ayudarte?"),
+    "de": dict(name="German", native="Deutsch", bcp47="de-DE", wait="Einen Moment.",
+               greeting="Hallo, hier ist {name}, ein KI-Sprachbegleiter. Wie kann ich helfen?"),
     "ar": dict(name="Arabic", native="العربية", bcp47="ar-SA", wait="لحظة من فضلك.",
                greeting="مرحباً، أنا {name}، مساعد صوتي بالذكاء الاصطناعي. كيف أستطيع مساعدتك؟"),
     "zh": dict(name="Chinese", native="中文", bcp47="zh-CN", wait="请稍等。",
@@ -103,3 +107,20 @@ def greeting_for(c: dict) -> str:
 
 SUPPORT_EMAILS = [e.strip() for e in os.getenv("SUPPORT_EMAILS", "muhumuzabright26@gmail.com,brytma616@gmail.com").split(",") if e.strip()]
 VERSION = (RESOURCE_DIR / "VERSION").read_text().strip() if (RESOURCE_DIR / "VERSION").exists() else ""
+
+# Luganda comes from Sunbird AI (a Ugandan non-profit): listening, thinking and speaking. Optional: switched on by a free token.
+SUNBIRD_TOKEN = os.getenv("SUNBIRD_API_TOKEN", "").strip()
+SUNBIRD_BASE = os.getenv("SUNBIRD_BASE", "https://api.sunbird.ai")
+SUNBIRD_LLM_MODEL = os.getenv("SUNBIRD_LLM_MODEL", "sunflower-9b")
+
+
+def languages_available() -> dict:
+    """Languages offered in the app: Luganda appears only when its token is configured."""
+    return {k: v for k, v in LANGS.items() if k != "lg" or SUNBIRD_TOKEN}
+
+# Hosted mode (a server people reach over the internet). Off by default: a personal computer needs none of it.
+HOSTED = os.getenv("CALLIE_MODE", "").strip().lower() == "hosted"
+INVITE_CODES = {c.strip() for c in os.getenv("INVITE_CODES", "").split(",") if c.strip()}
+SESSION_SECRET = os.getenv("SESSION_SECRET", "").strip()
+LIMIT_MINUTES_PER_DAY = float(os.getenv("LIMIT_MINUTES_PER_DAY", "30"))
+MAX_CONCURRENT_CALLS = int(os.getenv("MAX_CONCURRENT_CALLS", "4"))

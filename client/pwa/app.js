@@ -35,6 +35,7 @@ const NOTICES = {
   micbusy: "Your microphone is being used by another app. Please close it and try again.",
   secure: "Callie needs a secure connection to use the microphone. Please open the secure link.",
   config: "Callie is unavailable right now. Please try again later.",
+  limit: "You've reached today's call time. Please come back tomorrow.",
   generic: "Something went wrong. Please try again.",
 };
 const REF = (() => { let r = localStorage.getItem("ref"); if (!r) { r = Math.random().toString(36).slice(2, 8).toUpperCase(); localStorage.setItem("ref", r); } return r; })();
@@ -52,6 +53,7 @@ function writeTo(addr) {
 const toast = m => { $("toast").textContent = m; $("toast").classList.add("on"); setTimeout(() => $("toast").classList.remove("on"), 3500); };
 async function api(p, m = "GET", b) {
   const r = await fetch(p, { method: m, headers: { "Content-Type": "application/json" }, body: b ? JSON.stringify(b) : undefined });
+  if (r.status === 401) location.href = "/login";            // not signed in (hosted version)
   if (!r.ok) { const e = new Error(String(r.status)); e.status = r.status; throw e; }
   return r.json();
 }
@@ -77,6 +79,7 @@ async function load() {
   if (!$("lang").children.length) $("lang").innerHTML = (S.langs || []).map(l => `<option value="${l.id}">${l.label}</option>`).join("");
   if (!$("chips").children.length) $("chips").innerHTML = (S.types || []).map((t, i) => `<button class="chip${i ? "" : " on"}" data-voice="${t.id}">${t.label}</button>`).join("");
   $("memtog").classList.toggle("on", !!(S.settings && S.settings.memory));
+  $("account").hidden = !S.hosted;
   $("mails").innerHTML = (S.support || []).map(a => `<div class="mail"><span>${esc(a)}</span><button class="mini" data-act="copy" data-addr="${esc(a)}">Copy</button><button class="mini pri" data-act="write" data-addr="${esc(a)}">Write</button></div>`).join("");
   $("ref").textContent = REF;
   $("built").textContent = "Built in Uganda, by Bryt Ma Tech UG" + (S.version ? " · v" + S.version : "");
@@ -286,7 +289,7 @@ async function startCall(id, answered = false) {
       track.onmute = () => { note("mic", "muted"); $("err").textContent = NOTICES.mic; };
       track.onunmute = () => { if ($("err").textContent === NOTICES.mic) $("err").textContent = ""; };
     }
-    await ctx.audioWorklet.addModule("worklet.js?v=27");
+    await ctx.audioWorklet.addModule("worklet.js?v=29");
   } catch (e) { const msg = micError(e); if (cid === callId) fail(msg); return; }
   if (cid !== callId) return;
   node = new AudioWorkletNode(ctx, "capture"); ctx.createMediaStreamSource(stream).connect(node);
@@ -295,7 +298,7 @@ async function startCall(id, answered = false) {
   ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws/voice?contact=" + encodeURIComponent(id) + "&ref=" + REF);
   ws.binaryType = "arraybuffer";
   ws.onmessage = e => (typeof e.data === "string" ? onMsg(JSON.parse(e.data)) : onAudio(e.data));
-  ws.onclose = () => { if (cid === callId && busy) { hangup(false); note("net", "closed"); toast("The call was interrupted. Please try again."); } };
+  ws.onclose = () => { if (cid === callId && busy) { hangup(false); note("net", "closed"); toast("The call was interrupted. Please try again."); load().catch(() => {}); } };
   node.port.onmessage = e => {
     const a = new Int16Array(e.data); let sum = 0;
     for (let i = 0; i < a.length; i++) sum += a[i] * a[i];
@@ -312,7 +315,7 @@ function onMsg(m) {
   if (m.type === "ready") { vprof = m.voice || vprof; voice = pickVoice(vprof.gender); live(); }
   else if (m.type === "say") { if (m.turn >= minTurn) speak(m.text); }
   else if (m.type === "stop") { minTurn = m.turn; stopSpeaking(); }
-  else if (m.type === "notice") { note(m.code); $("err").textContent = NOTICES[m.code] || NOTICES.generic; }
+  else if (m.type === "notice") { if (m.code === "signin") { location.href = "/login"; return; } note(m.code); $("err").textContent = NOTICES[m.code] || NOTICES.generic; }
 }
 function cleanup() {
   if (wake) { wake.release().catch(() => {}); wake = null; }
@@ -386,6 +389,10 @@ document.addEventListener("click", async e => {
       try { const st = await getMic(); st.getTracks().forEach(t => t.stop()); toast("Microphone allowed"); await listMics(); } catch (e) { toast(micError(e)); }
       refreshMicState();
     } else if (d.act === "mictest") { if (testStream) stopMicTest(); else await startMicTest(); }
+    else if (d.act === "signout") { await api("/api/logout", "POST"); location.href = "/login"; }
+    else if (d.act === "delete-me") {
+      if (confirm("Delete all your contacts, schedule and memories, and sign out?")) { await api("/api/me", "DELETE"); location.href = "/login"; }
+    }
     else if (d.act === "support") { $("sheet-support").classList.add("open"); }
     else if (d.act === "close-sheet") { document.querySelectorAll(".sheet").forEach(x => x.classList.remove("open")); }
     else if (d.act === "write") { writeTo(d.addr); }

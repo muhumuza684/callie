@@ -12,3 +12,4 @@ data/memory.json
 dist/
 build/
 *.exe
+deploy/.env

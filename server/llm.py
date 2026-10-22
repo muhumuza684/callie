@@ -8,10 +8,11 @@ PROVIDERS = {   # name -> (base url, env var holding the key)
     "cerebras": ("https://api.cerebras.ai/v1", "CEREBRAS_API_KEY"),
     "openrouter": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY"),
     "mistral": ("https://api.mistral.ai/v1", "MISTRAL_API_KEY"),
+    "sunbird": ("https://api.sunbird.ai/tasks", "SUNBIRD_API_TOKEN"),
 }
 
 
-def llm_chain():
+def llm_chain(lang=None):
     """[(provider, model, base_url, api_key)] from LLM_CHAIN='groq:model,cerebras:model'; entries without a key are skipped."""
     out = []
     for item in config.LLM_CHAIN.split(","):
@@ -19,9 +20,11 @@ def llm_chain():
         if prov not in PROVIDERS or not model:
             continue
         base, env = PROVIDERS[prov]
-        key = config.GROQ_API_KEY if prov == "groq" else os.getenv(env, "").strip()
+        key = config.GROQ_API_KEY if prov == "groq" else (config.SUNBIRD_TOKEN if prov == "sunbird" else os.getenv(env, "").strip())
         if key:
             out.append((prov, model, base, key))
+    if lang == "lg" and config.SUNBIRD_TOKEN:       # a Luganda contact asks the Luganda model first; the normal chain stays as the safety net
+        out.insert(0, ("sunbird", config.SUNBIRD_LLM_MODEL, PROVIDERS["sunbird"][0], config.SUNBIRD_TOKEN))
     return out
 
 

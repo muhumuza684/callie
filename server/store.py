@@ -6,7 +6,7 @@ import secrets
 from datetime import datetime
 from pathlib import Path
 
-from server import config
+from server import auth, config
 
 PATH = config.HOME / "data" / "store.json"
 VOICES = ("female", "male", "girl", "boy", "baby", "adult", "old_lady", "old_man", "stranger")
@@ -24,11 +24,17 @@ DEFAULT = {
 }
 
 
+def _path():
+    u = auth.USER.get()
+    return (config.HOME / "users" / u / "data" / "store.json") if u else PATH
+
+
 def load() -> dict:
     d = copy.deepcopy(DEFAULT)
-    if PATH and PATH.exists():
+    p = _path()
+    if p and p.exists():
         try:
-            d = json.loads(PATH.read_text())
+            d = json.loads(p.read_text())
         except Exception:
             pass
     for c in d["contacts"]:
@@ -39,9 +45,10 @@ def load() -> dict:
 
 
 def save(d: dict):
-    if PATH:
-        PATH.parent.mkdir(parents=True, exist_ok=True)
-        PATH.write_text(json.dumps(d))
+    p = _path()
+    if p:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(d))
 
 
 def contact(cid: str | None):

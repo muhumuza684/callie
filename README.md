@@ -23,7 +23,7 @@ On Windows, if you see *"Windows protected your PC"*, choose **More info**, then
 
 - **Phone-style calling** - ringing, a green call screen, mute and end, recents, and scheduled calls that ring like an incoming call.
 - **Real conversation** - turn-taking, interruptions, it waits when you pause mid-sentence, and says "one moment" when the network is slow.
-- **Contacts with personality** - choose a name, one of 9 voice types and one of 8 languages (English, Kiswahili, Francais, Espanol, Arabic, Chinese, Hindi, Portuguese).
+- **Contacts with personality** - choose a name, one of 9 voice types and one of 10 languages (English, Kiswahili, Luganda, Francais, Espanol, Deutsch, Arabic, Chinese, Hindi, Portuguese).
 - **Optional memory** - off by default; when on, a contact remembers earlier calls so you can continue.
 - **Your look** - six themes and five ringtones, or the phone's own sound.
 - **Calm and professional** - people only see friendly wording, never technical errors; support is one tap away in Settings.
@@ -42,6 +42,10 @@ On Windows, if you see *"Windows protected your PC"*, choose **More info**, then
  contacts, schedule, settings  <-- REST --       small local store (contacts, memory)
 ```
 
+## Languages
+
+Callie listens in about 99 languages and answers in the language of each contact: English, Kiswahili, Francais, Espanol, Deutsch, Arabic, Chinese (Mandarin), Hindi and Portuguese. **Luganda** comes from [Sunbird AI](https://sunbird.ai), a Ugandan non-profit: listening, thinking and speaking. It is optional and appears only when a free Sunbird token is configured, and it is isolated, so if that service is slow or down the other languages are not affected. Setup is in the [guide](docs/GUIDE.md#luganda-optional).
+
 ## Run from source
 
 Requirements: Python 3.10+ and a free access key.
@@ -57,6 +61,10 @@ The launcher menu also pushes to GitHub, publishes a release and frees disk spac
 ## Releases
 
 Raise the number in `VERSION`, then choose **Publish a release** in the launcher (or run `.\scripts\release.ps1`). GitHub Actions runs the tests, builds the Windows, Mac and Linux apps and attaches them to a Release. The landing page lives in `docs/` and is published with GitHub Pages.
+
+## Hosting
+
+Callie can also run as an always-on service with invite-code sign-in, separate data for every person, fair-use limits and a delete-my-data button. It ships with a `Dockerfile`, a Docker Compose file with automatic https, and a Fly.io template. Step-by-step instructions, costs and a safety checklist are in [docs/HOSTING.md](docs/HOSTING.md).
 
 ## Project structure
 
@@ -81,7 +89,7 @@ No recordings are saved. Speech is processed only to understand and answer. Memo
 1. Push notifications so scheduled calls ring when the phone screen is off.
 2. First-run privacy and consent screen.
 3. Text and transcript option for accessibility.
-4. Accounts, a hosted service and rate limits, so people need nothing installed.
+4. Email sign-in so one person can use their account on several devices (hosting with invite codes is built).
 5. Offline fallback for listening and speaking.
 6. Custom voices, recorded only with the speaker's explicit consent.
 7. A native Android app for a true locked-screen incoming call.

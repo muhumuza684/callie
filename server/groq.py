@@ -49,6 +49,10 @@ class GroqClient:
             transport=transport or httpx.AsyncHTTPTransport(retries=3),
             headers={"Authorization": f"Bearer {config.GROQ_API_KEY}"},
         )
+        # a second client with NO default credentials: used for other services and for signed download links,
+        # so a key can never be sent to a host it does not belong to
+        self.plain = httpx.AsyncClient(timeout=httpx.Timeout(45.0, connect=30.0),
+                                       transport=transport or httpx.AsyncHTTPTransport(retries=2))
 
     async def warm(self):
         """Open the TLS connection at call start so the first reply isn't slowed by the handshake."""
@@ -57,7 +61,54 @@ class GroqClient:
         except Exception as e:
             log.warning("Groq warm-up failed: %r", e)
 
+    async def _sunbird_stt(self, pcm: bytes) -> str:
+        if not config.SUNBIRD_TOKEN:
+            raise ServiceError("config", "SUNBIRD_API_TOKEN is not set (needed for Luganda)")
+        url = f"{config.SUNBIRD_BASE}/tasks/audio/transcriptions"
+        wav = pcm_to_wav(pcm)
+        for field in ("audio", "file"):          # the upload field name differs between API versions
+            try:
+                r = await self.plain.post(url, headers={"Authorization": f"Bearer {config.SUNBIRD_TOKEN}"},
+                                          data={"language": "lug"}, files={field: ("speech.wav", wav, "audio/wav")})
+            except httpx.TransportError as e:
+                raise _net(e) from None
+            if r.status_code != 422:
+                break
+        if r.status_code != 200:
+            _fail(r.status_code, r.text)
+        return (r.json().get("audio_transcription") or "").strip()
+
+    async def _sunbird_tts(self, text: str) -> bytes:
+        if not config.SUNBIRD_TOKEN:
+            raise ServiceError("config", "SUNBIRD_API_TOKEN is not set (needed for Luganda)")
+        auth = {"Authorization": f"Bearer {config.SUNBIRD_TOKEN}"}
+        url = None
+        for path, body in (("/tasks/audio/speech", {"text": text, "model": "spark-tts", "speaker_id": 248, "response_mode": "url"}),
+                           ("/tasks/tts", {"text": text, "speaker_id": 248})):      # newer endpoint first, older one as a fallback
+            try:
+                r = await self.plain.post(f"{config.SUNBIRD_BASE}{path}", json=body, headers=auth)
+            except httpx.TransportError as e:
+                raise _net(e) from None
+            if r.status_code in (401, 403, 429):
+                _fail(r.status_code, r.text)
+            if r.status_code == 200:
+                j = r.json()
+                url = j.get("audio_url") or (j.get("output") or {}).get("audio_url")
+                if url:
+                    break
+        if not url:
+            raise ServiceError("voice", "Luganda voice returned no audio")
+        try:
+            a = await self.plain.get(url)         # a signed link: no credentials are sent to it
+        except httpx.TransportError as e:
+            raise _net(e) from None
+        if a.status_code != 200 or not a.content:
+            raise ServiceError("voice", f"Luganda audio download failed ({a.status_code})")
+        return a.content
+
     async def transcribe(self, pcm: bytes, lang: str | None = None) -> str:
+        if lang == "lg":
+            return await self._sunbird_stt(pcm)
         language = lang or config.STT_LANGUAGE
         data = {"model": config.STT_MODEL, "temperature": "0", "response_format": "verbose_json"}
         if language:
@@ -80,10 +131,10 @@ class GroqClient:
             return ""
         return j.get("text", "").strip()
 
-    async def stream_chat(self, messages: list) -> AsyncIterator[str]:
+    async def stream_chat(self, messages: list, lang: str | None = None) -> AsyncIterator[str]:
         """Try each model in LLM_CHAIN until one answers; switching is only possible before the first word."""
         errors, codes = [], []
-        for prov, model, base, key in llm_chain():
+        for prov, model, base, key in llm_chain(lang):
             started = False
             try:
                 async for tok in self._stream(prov, model, base, key, messages):
@@ -111,8 +162,11 @@ class GroqClient:
                                         headers={"Authorization": f"Bearer {key}"}) as r:
                 if r.status_code != 200:
                     _fail(r.status_code, (await r.aread()).decode("utf-8", "ignore"), chat=True)
+                raw, sent = [], False
                 async for line in r.aiter_lines():
                     if not line.startswith("data:"):
+                        if line.strip():
+                            raw.append(line)
                         continue
                     d = line[5:].strip()
                     if d == "[DONE]":
@@ -122,15 +176,29 @@ class GroqClient:
                     if tok:
                         out = strip.feed(tok)
                         if out:
+                            sent = True
                             yield out
+                if not sent and raw:               # a service that answers in one piece instead of streaming
+                    try:
+                        whole = (json.loads("\n".join(raw)).get("choices") or [{}])[0].get("message", {}).get("content")
+                    except ValueError:
+                        whole = None
+                    if whole:
+                        sent = True
+                        yield whole
         except httpx.TransportError as e:
             raise _net(e) from None
         tail = strip.flush()
         if tail:
+            sent = True
             yield tail
+        if not sent:
+            raise ServiceError("generic", f"{prov}:{model} returned an empty answer")
 
-    async def speak(self, text: str, voice: str | None = None) -> bytes:
-        """Orpheus text-to-speech (English, max ~200 chars per request). Returns WAV bytes."""
+    async def speak(self, text: str, voice: str | None = None, lang: str | None = None) -> bytes:
+        """Natural voice. English: Orpheus (max ~200 chars per request). Luganda: Sunbird. Returns WAV bytes."""
+        if lang == "lg":
+            return await self._sunbird_tts(text)
         body = {"model": config.TTS_MODEL, "voice": voice or config.TTS_VOICE, "input": text, "response_format": "wav"}
         try:
             r = await self.http.post(f"{BASE}/audio/speech", json=body)
@@ -146,3 +214,4 @@ class GroqClient:
 
     async def close(self):
         await self.http.aclose()
+        await self.plain.aclose()

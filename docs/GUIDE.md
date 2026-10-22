@@ -36,8 +36,19 @@ For the natural English voices, also accept the voice terms once at
 Tap **+** to create a contact: a name, a voice and a language.
 
 - **Voices:** female, male, girl, boy, baby, adult, old lady, old man, stranger. Girl, boy, baby and the old voices are adult voices shaped to sound younger or older, so they sound like characters. Child-style contacts always stay playful and age-appropriate.
-- **Languages:** English, Kiswahili, Francais, Espanol, Arabic, Chinese, Hindi, Portuguese. Callie listens and answers in the contact's language. Natural voices are strongest in English; other languages use a voice installed on your device.
+- **Languages:** English, Kiswahili, Luganda (optional, see below), Francais, Espanol, Deutsch, Arabic, Chinese, Hindi, Portuguese. Callie listens and answers in the contact's language. Natural voices are strongest in English; other languages use a voice installed on your device, except Luganda, which has its own voice.
 - **Edit** lets you delete contacts. Recents shows your calls, and tapping one calls back.
+
+### Luganda (optional)
+
+Luganda is provided by Sunbird AI, a Ugandan non-profit. To switch it on:
+
+1. Create a free account at [api.sunbird.ai](https://api.sunbird.ai) and copy your access token.
+2. Add it to Callie's settings file. Desktop app: open PowerShell and run
+   `Add-Content "$env:APPDATA\Callie\.env" "SUNBIRD_API_TOKEN=YOUR_TOKEN"`. From the source folder, add the same line to `.env`.
+3. Restart Callie. **Oluganda** now appears in the language list when you create a contact.
+
+A Luganda call uses Sunbird for listening, thinking and speaking, so it is a little slower than English and is subject to Sunbird's own usage limits. If the service is unavailable the other languages keep working. The Luganda greeting is a first version: please ask a native speaker to check it.
 
 ## Schedule
 
@@ -146,6 +157,10 @@ The tests also check that every button has a handler, that nothing technical is 
 - **On GitHub (recommended):** the launcher's option **6** (or `.\scripts\release.ps1`) tags the number in `VERSION` and pushes the tag. The workflow in `.github/workflows/build.yml` runs the tests, builds the Windows, Mac and Linux apps and attaches them to a Release. Raise `VERSION` for each new release.
 - **On your PC:** `.\scripts\build-exe.ps1` builds `Callie.exe` and copies it to your Desktop.
 - **Move to the desktop app:** `.\scripts\migrate-to-app.ps1` copies your key, contacts and memory into the app's folder.
+
+## Hosting
+
+To run Callie for other people, see [HOSTING.md](HOSTING.md): invite-code sign-in, separate data per person, fair-use limits, Docker and https.
 
 ## Keeping the repository clean
 

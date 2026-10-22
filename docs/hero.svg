@@ -16,7 +16,7 @@
   <text x="84" y="404" font-family="Segoe UI, system-ui, Helvetica, Arial, sans-serif" font-size="34" fill="#a1a1aa">like phoning a friend.</text>
 
   <g font-family="Segoe UI, system-ui, Helvetica, Arial, sans-serif" font-size="20" fill="#e4e4e7">
-    <rect x="84" y="446" width="150" height="42" rx="21" fill="#26262b"/><text x="159" y="474" text-anchor="middle">8 languages</text>
+    <rect x="84" y="446" width="150" height="42" rx="21" fill="#26262b"/><text x="159" y="474" text-anchor="middle">10 languages</text>
     <rect x="246" y="446" width="166" height="42" rx="21" fill="#26262b"/><text x="329" y="474" text-anchor="middle">9 voice types</text>
     <rect x="424" y="446" width="226" height="42" rx="21" fill="#26262b"/><text x="537" y="474" text-anchor="middle">Phone &amp; computer</text>
   </g>

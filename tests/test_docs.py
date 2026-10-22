@@ -57,3 +57,17 @@ def test_packaging_recipe_bundles_the_web_files_and_version():
 
 def test_guide_anchor_used_by_the_landing_page_exists():
     assert "## Use it on your phone" in GUIDE and "GUIDE.md#use-it-on-your-phone" in LANDING
+
+
+def test_hosting_files_are_consistent():
+    docker = (ROOT / "Dockerfile").read_text()
+    assert "USER callie" in docker and "CALLIE_MODE=hosted" in docker and "--proxy-headers" in docker and "HEALTHCHECK" in docker
+    compose = (ROOT / "deploy" / "docker-compose.yml").read_text()
+    assert "Caddyfile" in compose and "callie_data:/data" in compose
+    assert "reverse_proxy callie:8000" in (ROOT / "deploy" / "Caddyfile").read_text()
+    env = (ROOT / "deploy" / ".env.example").read_text()
+    assert "INVITE_CODES" in env and "DOMAIN" in env
+    assert ".env" in (ROOT / ".dockerignore").read_text().split()                # the key never goes into the image
+    assert "deploy/.env" in (ROOT / ".gitignore").read_text().split()
+    guide = (ROOT / "docs" / "HOSTING.md").read_text()
+    assert "docker compose up -d --build" in guide and "INVITE_CODES" in guide
