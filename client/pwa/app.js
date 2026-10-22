@@ -36,6 +36,7 @@ const NOTICES = {
   secure: "Callie needs a secure connection to use the microphone. Please open the secure link.",
   config: "Callie is unavailable right now. Please try again later.",
   limit: "You've reached today's call time. Please come back tomorrow.",
+  daily: "You've used today's calls on this device. Please come back tomorrow.",
   generic: "Something went wrong. Please try again.",
 };
 const REF = (() => { let r = localStorage.getItem("ref"); if (!r) { r = Math.random().toString(36).slice(2, 8).toUpperCase(); localStorage.setItem("ref", r); } return r; })();
@@ -297,8 +298,9 @@ async function startCall(id, answered = false) {
   if (cid !== callId) return;
   ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws/voice?contact=" + encodeURIComponent(id) + "&ref=" + REF);
   ws.binaryType = "arraybuffer";
+  let opened = false; ws.onopen = () => { opened = true; };
   ws.onmessage = e => (typeof e.data === "string" ? onMsg(JSON.parse(e.data)) : onAudio(e.data));
-  ws.onclose = () => { if (cid === callId && busy) { hangup(false); note("net", "closed"); toast("The call was interrupted. Please try again."); load().catch(() => {}); } };
+  ws.onclose = () => { if (cid === callId && busy) { hangup(false); note("net", opened ? "closed" : "asleep"); toast(opened ? "The call was interrupted. Please try again." : "Callie is resting right now and wakes up in about a minute. Please try again soon."); load().catch(() => {}); } };
   node.port.onmessage = e => {
     const a = new Int16Array(e.data); let sum = 0;
     for (let i = 0; i < a.length; i++) sum += a[i] * a[i];
@@ -424,7 +426,7 @@ $("ring").onchange = async () => {
   const c = new AudioContext(); await c.resume(); playRing($("ring").value, c); setTimeout(() => c.close().catch(() => {}), 4500);
 };
 document.body.dataset.edit = "0";
-(function boot() { load().catch(() => { note("net", "boot"); toast("You seem to be offline. Reconnecting…"); setTimeout(boot, 5000); }); })();
+(function boot() { load().catch(() => { note("net", "boot"); toast(navigator.onLine === false ? "You seem to be offline. Reconnecting…" : "Callie is waking up. This can take up to a minute…"); setTimeout(boot, 5000); }); })();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 
 // tells the desktop app this window is still open

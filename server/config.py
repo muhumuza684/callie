@@ -124,3 +124,7 @@ INVITE_CODES = {c.strip() for c in os.getenv("INVITE_CODES", "").split(",") if c
 SESSION_SECRET = os.getenv("SESSION_SECRET", "").strip()
 LIMIT_MINUTES_PER_DAY = float(os.getenv("LIMIT_MINUTES_PER_DAY", "30"))
 MAX_CONCURRENT_CALLS = int(os.getenv("MAX_CONCURRENT_CALLS", "4"))
+
+# Fair use per device: how many calls one device may start per day when people reach this Callie through a link
+# (a phone tunnel or a hosted server). 0 turns it off. Calls made directly on the computer running Callie are never counted.
+CALLS_PER_DEVICE_PER_DAY = int(os.getenv("CALLS_PER_DEVICE_PER_DAY", "5"))

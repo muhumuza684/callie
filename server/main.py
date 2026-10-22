@@ -16,7 +16,7 @@ from typing import Literal
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
-from server import auth, config, memory, store
+from server import auth, config, limits, memory, store
 from server.ws import handle_voice_socket
 
 PWA_DIR = config.RESOURCE_DIR / "client" / "pwa"
@@ -143,9 +143,13 @@ async def _sign_in_required(request: Request, call_next):
         return JSONResponse({"error": "signin"}, status_code=401)
     token = auth.USER.set(uid)
     try:
-        return await call_next(request)
+        resp = await call_next(request)
     finally:
         auth.USER.reset(token)
+    if limits.is_remote(request.headers) and not auth.verify(request.cookies.get(limits.DEVICE_COOKIE)):
+        secure = (request.headers.get("x-forwarded-proto") or request.url.scheme) == "https"
+        resp.set_cookie(limits.DEVICE_COOKIE, limits.new_device_cookie(), max_age=60 * 60 * 24 * 365, httponly=True, samesite="lax", secure=secure)
+    return resp
 
 
 class LoginIn(BaseModel):

@@ -32,19 +32,21 @@ section{padding:46px 0;border-top:1px solid var(--line)}h2{font-size:1.7rem;marg
 .dl a{display:flex;flex-direction:column;gap:2px;padding:18px 20px;border-radius:18px;background:var(--panel);border:1px solid var(--line);color:inherit;text-decoration:none}
 .dl a:hover{border-color:var(--accent)}.dl b{font-size:1.05rem}.dl span{color:var(--mute);font-size:.88rem}
 .note{color:var(--mute);font-size:.9rem;margin-top:16px}
+.share{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px}.share .btn{padding:10px 20px;font-size:.95rem}
+.qr{display:flex;gap:18px;align-items:center;margin-top:26px;padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:18px}.qr img{background:#fff;border-radius:10px;padding:6px;flex:none}.qr p{margin:0;color:var(--mute);font-size:.95rem}.qr a{color:var(--accent)}@media (max-width:480px){.qr{flex-direction:column;text-align:center}}
 footer{border-top:1px solid var(--line);padding:28px 0 44px;color:var(--mute);font-size:.9rem;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}footer a{color:inherit}
 </style>
 </head>
 <body>
 <div class="wrap">
   <nav><a class="logo" href="#"><img src="icon.png" alt="">Callie</a>
-    <div><a class="l" href="#how">How it works</a><a class="l" href="#download">Download</a><a class="l" href="GUIDE.md">Guide</a><a class="l" href="https://github.com/muhumuza684/callie">GitHub</a></div></nav>
+    <div><a class="l" href="#how">How it works</a><a class="l" href="#download">Download</a><a class="l" href="guide.html">Guide</a><a class="l" href="https://github.com/muhumuza684/callie">GitHub</a></div></nav>
 
   <div class="hero">
     <div>
       <h1>Call an AI <em>by voice,</em> like phoning a friend.</h1>
       <p class="lead">Pick a contact, hear it ring, and just talk. Each contact has its own name, voice and language, and every call is clear that you are talking to an AI.</p>
-      <div class="btns"><a class="btn" href="#download">Download Callie</a><a class="btn o" href="GUIDE.md">Read the guide</a></div>
+      <div class="btns"><a class="btn" href="#download">Download Callie</a><a class="btn o" href="guide.html">Read the guide</a></div>
     </div>
     <img class="pic" src="hero.png" alt="Callie on a call with Mary">
   </div>
@@ -76,12 +78,28 @@ footer{border-top:1px solid var(--line);padding:28px 0 44px;color:var(--mute);fo
       <a href="https://github.com/muhumuza684/callie/releases/latest/download/Callie-windows.exe"><b>Windows</b><span>Callie-windows.exe</span></a>
       <a href="https://github.com/muhumuza684/callie/releases/latest/download/Callie-macos.tar.gz"><b>Mac (Apple silicon)</b><span>Callie-macos.tar.gz</span></a>
       <a href="https://github.com/muhumuza684/callie/releases/latest/download/Callie-linux.tar.gz"><b>Linux</b><span>Callie-linux.tar.gz</span></a>
-      <a href="GUIDE.md#use-it-on-your-phone"><b>Android and iPhone</b><span>Install from the browser</span></a>
+      <a id="phoneBtn" href="phone.html"><b>Android and iPhone</b><span>Install from the browser: steps</span></a>
     </div>
     <p class="note">Windows may say "Windows protected your PC" because the app is new. Choose <b>More info</b>, then <b>Run anyway</b>. All versions are on the <a href="https://github.com/muhumuza684/callie/releases">releases page</a>.</p>
+    <div class="qr"><img src="qr.svg" width="132" height="132" alt="QR code that opens this page"><p><b>On your phone?</b><br>Scan this code to open this page on it, or send the link to a friend:<br><a href="https://muhumuza684.github.io/callie/">muhumuza684.github.io/callie</a></p></div>
+    <div class="share"><a class="btn" id="wa" href="#">Share on WhatsApp</a><a class="btn o" id="copy" href="#">Copy link</a></div>
   </section>
 
-  <footer><div>Built in Uganda, by <b>Bryt Ma Tech UG</b></div><div><a href="GUIDE.md">Guide</a> &middot; <a href="https://github.com/muhumuza684/callie">GitHub</a></div></footer>
+  <footer><div>Built in Uganda, by <b>Bryt Ma Tech UG</b></div><div><a href="guide.html">Guide</a> &middot; <a href="https://github.com/muhumuza684/callie">GitHub</a></div></footer>
 </div>
+<script>
+// Put your always-on Callie address here (it must start with https://). While it is empty, the phone button opens the install steps.
+const APP_URL = "";
+const SITE = "https://muhumuza684.github.io/callie/";
+const btn = document.getElementById("phoneBtn");
+if (APP_URL) { btn.href = APP_URL; btn.target = "_blank"; btn.rel = "noopener"; btn.querySelector("span").textContent = "Open Callie in your browser"; }
+const msg = "Try Callie: call an AI by voice, like phoning a friend. " + SITE;
+document.getElementById("wa").href = "https://wa.me/?text=" + encodeURIComponent(msg);
+document.getElementById("copy").addEventListener("click", async e => {
+  e.preventDefault();
+  try { if (navigator.share) { await navigator.share({ title: "Callie", text: msg, url: SITE }); return; } } catch (_) { return; }
+  try { await navigator.clipboard.writeText(SITE); e.target.textContent = "Link copied"; } catch (_) { window.prompt("Copy this link:", SITE); }
+});
+</script>
 </body>
 </html>

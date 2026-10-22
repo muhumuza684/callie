@@ -43,12 +43,15 @@ async def handle_voice_socket(ws: WebSocket):
         await ws.close()
         return
     auth.USER.set(uid)
-    why = limits.can_start(uid)
+    dev = limits.device_key(ws.cookies, ws.headers, ws.client.host if ws.client else None) if limits.is_remote(ws.headers) else None
+    why = (limits.device_can_start(dev) if dev else None) or limits.can_start(uid)
     if why:
         await send({"type": "notice", "code": why})
         await ws.close()
         return
     limits.start(uid)
+    if dev:
+        limits.device_count(dev, +1)
     started = time.monotonic()
     session, who = None, None
     try:                      # everything after the slot is taken is inside the try, so the slot is always given back
@@ -79,6 +82,8 @@ async def handle_voice_socket(ws: WebSocket):
             await session.close()
         secs = int(time.monotonic() - started)
         limits.end(uid, secs)
+        if dev and secs <= 3:
+            limits.device_count(dev, -1)      # a call that never really started does not use up the day
         log.info("[%s] call ended after %ds", ref, secs)
         if who and secs > 3:
             store.add_recent(who["id"], secs)

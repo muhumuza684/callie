@@ -62,6 +62,10 @@ The launcher menu also pushes to GitHub, publishes a release and frees disk spac
 
 Raise the number in `VERSION`, then choose **Publish a release** in the launcher (or run `.\scripts\release.ps1`). GitHub Actions runs the tests, builds the Windows, Mac and Linux apps and attaches them to a Release. The landing page lives in `docs/` and is published with GitHub Pages.
 
+## Fair use
+
+So the free access keys last, each phone or browser that reaches Callie through a link can start 5 calls a day (`CALLS_PER_DEVICE_PER_DAY`, `0` = off). Calls on the computer running Callie are never counted.
+
 ## Hosting
 
 Callie can also run as an always-on service with invite-code sign-in, separate data for every person, fair-use limits and a delete-my-data button. It ships with a `Dockerfile`, a Docker Compose file with automatic https, and a Fly.io template. Step-by-step instructions, costs and a safety checklist are in [docs/HOSTING.md](docs/HOSTING.md).

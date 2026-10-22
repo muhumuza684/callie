@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Callie guide</title><link rel="icon" href="icon.png"><style>:root{--bg:#0b0b0d;--panel:#141417;--line:#26262b;--ink:#f4f4f5;--mute:#a1a1aa;--accent:#22c55e}
+@media (prefers-color-scheme:light){:root{--bg:#f6f6f8;--panel:#fff;--line:#e2e2e8;--ink:#17171a;--mute:#5f5f6a;--accent:#16a34a}}
+*{box-sizing:border-box}html{scroll-padding-top:16px}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,sans-serif;line-height:1.65;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+.w{max-width:820px;margin:0 auto;padding:0 20px 60px}
+nav{display:flex;justify-content:space-between;align-items:center;padding:20px 0;border-bottom:1px solid var(--line);margin-bottom:10px}nav a{color:var(--mute);text-decoration:none}nav b a{color:var(--ink)}
+h1{font-size:2rem;margin:.8em 0 .3em}h2{font-size:1.45rem;margin:1.8em 0 .4em;padding-top:.6em;border-top:1px solid var(--line)}h3{font-size:1.1rem;margin:1.4em 0 .3em}
+a{color:var(--accent)}code{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1px 5px;font-size:.9em}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;overflow-x:auto}pre code{border:0;padding:0;background:none}
+table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%;margin:12px 0}th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}th{background:var(--panel)}
+hr{border:0;border-top:1px solid var(--line);margin:2em 0}</style></head>
+<body><div class="w"><nav><b><a href="./">Callie</a></b><span><a href="./#download">Download</a> &middot; <a href="guide.html">Guide</a> &middot; <a href="https://github.com/muhumuza684/callie">GitHub</a></span></nav>
+<h1 id="callie-guide">Callie guide</h1>
+<p>Callie lets you talk with friendly AI companions by voice, as simply
+as making a phone call. This guide has two parts: <strong>using
+Callie</strong> (everyone) and <strong>for developers</strong> (the
+bottom).</p>
+<h2 id="install">Install</h2>
+<table>
+<thead>
+<tr class="header">
+<th>System</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Windows</strong></td>
+<td>Download <code>Callie-windows.exe</code> from the <a
+href="https://github.com/muhumuza684/callie/releases/latest">releases
+page</a>, move it to your Desktop and double-click it. If Windows says
+<em>"Windows protected your PC"</em>, choose <strong>More info</strong>,
+then <strong>Run anyway</strong> (the app is new and not yet
+signed).</td>
+</tr>
+<tr class="even">
+<td><strong>Mac (Apple silicon)</strong></td>
+<td>Download <code>Callie-macos.tar.gz</code>, double-click it to
+unpack, then right-click <strong>Callie</strong> and choose
+<strong>Open</strong> the first time.</td>
+</tr>
+<tr class="odd">
+<td><strong>Linux</strong></td>
+<td>Download <code>Callie-linux.tar.gz</code>, unpack it, run
+<code>chmod +x Callie</code>, then <code>./Callie</code>.</td>
+</tr>
+<tr class="even">
+<td><strong>Android and iPhone</strong></td>
+<td>See <a href="#use-it-on-your-phone">Use it on your phone</a>.</td>
+</tr>
+</tbody>
+</table>
+<p>Callie opens in its own window. When you close the window, Callie
+quits by itself after a few minutes. Double-click it again whenever you
+want to talk.</p>
+<h2 id="first-run">First run</h2>
+<p>The first time, Callie shows a short <strong>Set up Callie</strong>
+page. It needs a free access key to talk:</p>
+<ol type="1">
+<li>Open <a
+href="https://console.groq.com/keys">console.groq.com/keys</a>, sign in
+and create a key.</li>
+<li>Paste it into the box and press <strong>Save and
+start</strong>.</li>
+<li>The key is stored only on your computer, in Callie's own folder (see
+<em>Where your data lives</em>).</li>
+</ol>
+<p>For the natural English voices, also accept the voice terms once at
+<a
+href="https://console.groq.com/playground?model=canopylabs/orpheus-v1-english">the
+voice page</a>. Without it Callie still talks, using a simpler
+voice.</p>
+<h2 id="making-a-call">Making a call</h2>
+<ul>
+<li>Tap a contact. It rings, then answers with a short greeting that
+says it is an AI.</li>
+<li>Just talk. You can interrupt at any time. Use <strong>Mute</strong>
+to stop it hearing you and <strong>End</strong> to hang up.</li>
+<li>Use headphones for the best result: they stop the voice echoing back
+into your microphone.</li>
+</ul>
+<h2 id="contacts">Contacts</h2>
+<p>Tap <strong>+</strong> to create a contact: a name, a voice and a
+language.</p>
+<ul>
+<li><strong>Voices:</strong> female, male, girl, boy, baby, adult, old
+lady, old man, stranger. Girl, boy, baby and the old voices are adult
+voices shaped to sound younger or older, so they sound like characters.
+Child-style contacts always stay playful and age-appropriate.</li>
+<li><strong>Languages:</strong> English, Kiswahili, Luganda (optional,
+see below), Francais, Espanol, Deutsch, Arabic, Chinese, Hindi,
+Portuguese. Callie listens and answers in the contact's language.
+Natural voices are strongest in English; other languages use a voice
+installed on your device, except Luganda, which has its own voice.</li>
+<li><strong>Edit</strong> lets you delete contacts. Recents shows your
+calls, and tapping one calls back.</li>
+</ul>
+<h3 id="luganda-optional">Luganda (optional)</h3>
+<p>Luganda is provided by Sunbird AI, a Ugandan non-profit. To switch it
+on:</p>
+<ol type="1">
+<li>Create a free account at <a
+href="https://api.sunbird.ai">api.sunbird.ai</a> and copy your access
+token.</li>
+<li>Add it to Callie's settings file. Desktop app: open PowerShell and
+run
+<code>Add-Content "$env:APPDATA\Callie\.env" "</code>nSUNBIRD_API_TOKEN=YOUR_TOKEN"<code>(the ``</code>n
+`` starts a new line, so it never joins the line above). From the source
+folder, add the same line to <code>.env</code>.</li>
+<li>Restart Callie. <strong>Oluganda</strong> now appears in the
+language list when you create a contact.</li>
+</ol>
+<p>A Luganda call uses Sunbird for listening, thinking and speaking, so
+it is a little slower than English and is subject to Sunbird's own usage
+limits. If the service is unavailable the other languages keep working.
+The Luganda greeting is a first version: please ask a native speaker to
+check it.</p>
+<h2 id="schedule">Schedule</h2>
+<p>Open <strong>Schedule</strong>, tap <strong>+</strong>, choose a
+contact and a time. Every day at that time Callie rings you like an
+incoming call. For now this works while Callie is open and the sound is
+on.</p>
+<h2 id="settings">Settings</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Setting</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Notifications</td>
+<td>Lets Callie show a notice for an incoming scheduled call</td>
+</tr>
+<tr class="even">
+<td>Ringtone</td>
+<td>Five built-in tones, or "Phone default" to use your phone's own
+sound and vibration</td>
+</tr>
+<tr class="odd">
+<td>Theme</td>
+<td>Auto, Midnight, Daylight, Ocean, Sunset, Royal</td>
+</tr>
+<tr class="even">
+<td>Microphone</td>
+<td>Choose a microphone and press <strong>Test</strong> to check it. It
+listens only while the test runs</td>
+</tr>
+<tr class="odd">
+<td>Remember conversations</td>
+<td>Off by default. When on, Callie keeps short notes per contact so you
+can continue later. <strong>Clear memories</strong> deletes them</td>
+</tr>
+<tr class="even">
+<td>About, FAQ, Support</td>
+<td>What Callie is for, five answered questions, and the support
+addresses with Copy and Write buttons</td>
+</tr>
+</tbody>
+</table>
+<h2 id="use-it-on-your-phone">Use it on your phone</h2>
+<p>Callie is a web app, so a phone can use it without an app store. The
+phone needs a secure (https) address. A free tunnel gives your computer
+one:</p>
+<ul>
+<li><strong>From the source folder (Windows):</strong> run
+<code>Callie.cmd</code>, choose <strong>2</strong>. It prints a link and
+opens a QR code. Scan it with your phone.</li>
+<li><strong>With the downloaded app:</strong> install Cloudflare's free
+<code>cloudflared</code>, keep Callie open, and run
+<code>cloudflared tunnel --url http://127.0.0.1:8731</code>. It prints a
+link ending in <code>trycloudflare.com</code>.</li>
+</ul>
+<p>Then open the link on your phone, allow the microphone and use
+headphones. Install it from the browser menu: <strong>Install
+app</strong> on Android Chrome, or <strong>Share &gt; Add to Home
+Screen</strong> on iPhone Safari.</p>
+<p>The link changes every time and works only while your computer and
+Callie are running. <strong>Do not share it:</strong> anyone who has it
+can use your Callie. To protect your free access key, each phone or
+browser that comes in through a link can start <strong>5 calls a
+day</strong> (change it with <code>CALLS_PER_DEVICE_PER_DAY</code>).
+Calls you make on the computer itself are never counted. A call that
+ends within a few seconds does not use up the day.</p>
+<h2 id="where-your-data-lives">Where your data lives</h2>
+<table>
+<thead>
+<tr class="header">
+<th>System</th>
+<th>Folder</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Windows</td>
+<td><code>%APPDATA%\Callie</code></td>
+</tr>
+<tr class="even">
+<td>Mac</td>
+<td><code>~/Library/Application Support/Callie</code></td>
+</tr>
+<tr class="odd">
+<td>Linux</td>
+<td><code>~/.local/share/Callie</code></td>
+</tr>
+</tbody>
+</table>
+<p>It holds your key (<code>.env</code>), contacts and schedule
+(<code>data/store.json</code>), memory (<code>data/memory.json</code>)
+and a log file (<code>logs/callie.log</code>). Recordings of your voice
+are never saved. Deleting the folder removes everything.</p>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<table>
+<thead>
+<tr class="header">
+<th>What happens</th>
+<th>What to do</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>"Callie is resting right now" or "waking up"</td>
+<td>The server is asleep or offline. Wait about a minute and try again.
+The app still opens and shows your contacts, but calls need the
+server</td>
+</tr>
+<tr class="even">
+<td>Nobody hears me</td>
+<td>Check your device's mute key, then open Settings &gt; Microphone:
+press <strong>Allow microphone</strong> and <strong>Test</strong>. On a
+phone, make sure the browser is allowed to use the microphone (site
+settings) and that no other app is using it</td>
+</tr>
+<tr class="odd">
+<td>"Your connection is weak"</td>
+<td>Check your internet. If you use a VPN, switch it off and try
+again</td>
+</tr>
+<tr class="even">
+<td>Only a simple voice</td>
+<td>Accept the voice terms (see First run), then restart Callie</td>
+</tr>
+<tr class="odd">
+<td>A language has no voice</td>
+<td>Install a voice for it in your system's speech settings</td>
+</tr>
+<tr class="even">
+<td>Scheduled call did not ring</td>
+<td>Callie must be open with the sound on</td>
+</tr>
+<tr class="odd">
+<td>Something else</td>
+<td>Settings &gt; Support, and quote the reference shown there</td>
+</tr>
+</tbody>
+</table>
+<h2 id="privacy">Privacy</h2>
+<p>Callie does not record or keep your calls. Your speech is processed
+only to understand you and to answer. Memory is off unless you switch it
+on. Callie always says it is an AI, can make mistakes, and is not a
+substitute for professional, medical or emergency help.</p>
+<hr />
+<h1 id="for-developers">For developers</h1>
+<h2 id="run-from-source">Run from source</h2>
+<p>Requirements: Python 3.10+ (developed on 3.14) and a free key.</p>
+<pre class="powershell"><code># Windows: double-click Callie.cmd, or
+.\scripts\setup.ps1      # creates .venv, installs packages, runs tests, asks for the key
+.\scripts\run.ps1        # starts http://127.0.0.1:8000</code></pre>
+<p>On Mac or Linux: <code>python3 -m venv .venv</code>,
+<code>.venv/bin/pip install -r requirements-base.txt -r requirements-dev.txt</code>,
+then
+<code>.venv/bin/python -m uvicorn server.main:app --port 8000</code>.</p>
+<h2 id="layout">Layout</h2>
+<pre><code>client/pwa/     the app: index.html, app.js, style.css, setup.html, worklet.js, manifest, service worker, icons
+desktop/main.py starts the server inside the app and opens its window
+server/         main (API), ws (calls), groq (speech + AI + failover), llm, store, memory, config
+pipeline/       one call: turn-taking, listening, reply, memory, voice sensing
+audio/          audio helpers (pcm, voice_features)
+conversation/   local topic and mood profile
+scripts/        launcher and helpers
+tests/          automated tests
+docs/           landing page (GitHub Pages) and this guide</code></pre>
+<h2 id="configuration-env-in-the-data-folder">Configuration
+(<code>.env</code> in the data folder)</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Setting</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>GROQ_API_KEY</code></td>
+<td>none</td>
+<td>the access key (required)</td>
+</tr>
+<tr class="even">
+<td><code>LLM_CHAIN</code></td>
+<td>three models, in order</td>
+<td>models tried in turn; add <code>cerebras:</code>,
+<code>openrouter:</code> or <code>mistral:</code> entries with their
+keys for more fallback</td>
+</tr>
+<tr class="odd">
+<td><code>GROQ_STT_MODEL</code></td>
+<td><code>whisper-large-v3-turbo</code></td>
+<td>speech recognition</td>
+</tr>
+<tr class="even">
+<td><code>STT_LANGUAGE</code>, <code>STT_HINT</code></td>
+<td><code>en</code>, names and terms</td>
+<td>default language and spelling hints (English)</td>
+</tr>
+<tr class="odd">
+<td><code>TTS_MODE</code></td>
+<td><code>orpheus</code></td>
+<td><code>orpheus</code> natural English voice, <code>browser</code>
+basic voice</td>
+</tr>
+<tr class="even">
+<td><code>VOICE_FEMALE</code>, <code>VOICE_MALE</code>, ...</td>
+<td>built-in</td>
+<td>which voice each type uses</td>
+</tr>
+<tr class="odd">
+<td><code>CALLS_PER_DEVICE_PER_DAY</code></td>
+<td><code>5</code></td>
+<td>calls one device may start per day when it reaches Callie through a
+link; <code>0</code> turns the limit off</td>
+</tr>
+<tr class="even">
+<td><code>SUPPORT_EMAILS</code></td>
+<td>the two support addresses</td>
+<td>shown in Settings &gt; Support</td>
+</tr>
+<tr class="odd">
+<td><code>CALLIE_HOME</code>, <code>CALLIE_PORT</code></td>
+<td>per system, <code>8731</code> (app)</td>
+<td>data folder and port</td>
+</tr>
+</tbody>
+</table>
+<h2 id="tests">Tests</h2>
+<pre class="powershell"><code>.\.venv\Scripts\python.exe -m pytest -q tests</code></pre>
+<p>The tests also check that every button has a handler, that nothing
+technical is shown to users, and that the docs and release links
+agree.</p>
+<h2 id="build-and-release">Build and release</h2>
+<ul>
+<li><strong>On GitHub (recommended):</strong> the launcher's option
+<strong>6</strong> (or <code>.\scripts\release.ps1</code>) tags the
+number in <code>VERSION</code> and pushes the tag. The workflow in
+<code>.github/workflows/build.yml</code> runs the tests, builds the
+Windows, Mac and Linux apps and attaches them to a Release. Raise
+<code>VERSION</code> for each new release.</li>
+<li><strong>On your PC:</strong> <code>.\scripts\build-exe.ps1</code>
+builds <code>Callie.exe</code> and copies it to your Desktop.</li>
+<li><strong>Docs pages:</strong> <code>docs/guide.html</code> and
+<code>docs/hosting.html</code> are made from the markdown files with
+<code>python scripts/build-docs.py</code> (needs <code>pandoc</code>).
+Run it after editing <code>GUIDE.md</code> or <code>HOSTING.md</code>;
+the tests fail if they differ.</li>
+<li><strong>Move to the desktop app:</strong>
+<code>.\scripts\migrate-to-app.ps1</code> copies your key, contacts and
+memory into the app's folder.</li>
+</ul>
+<h2 id="hosting">Hosting</h2>
+<p>To run Callie for other people, see <a
+href="hosting.html">HOSTING.md</a>: invite-code sign-in, separate data per
+person, fair-use limits, Docker and https.</p>
+<h2 id="keeping-the-repository-clean">Keeping the repository clean</h2>
+<p><code>.gitignore</code> keeps keys, personal data, build output and
+tools out of git. <code>scripts/stale.txt</code> lists files that are no
+longer used, and the launcher deletes them after an update.
+<code>.\scripts\clean.ps1</code> frees disk space without touching your
+key or data.</p>
+</div></body></html>

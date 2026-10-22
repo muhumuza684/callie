@@ -55,8 +55,30 @@ def test_packaging_recipe_bundles_the_web_files_and_version():
     assert "client/pwa" in spec and "VERSION" in spec and "desktop/main.py" in spec
 
 
-def test_guide_anchor_used_by_the_landing_page_exists():
-    assert "## Use it on your phone" in GUIDE and "GUIDE.md#use-it-on-your-phone" in LANDING
+def test_landing_links_open_real_pages_not_raw_markdown():
+    docs = ROOT / "docs"
+    assert ".md" not in re.sub(r"https?://\S+", "", LANDING)                     # nothing on the landing page opens raw markdown
+    for page in ("guide.html", "phone.html", "hosting.html", "qr.svg"):
+        assert (docs / page).exists(), page
+    for page in ("guide.html", "phone.html"):
+        assert f'href="{page}"' in LANDING, page
+    assert 'src="qr.svg"' in LANDING
+    assert "## Use it on your phone" in GUIDE and 'id="use-it-on-your-phone"' in (docs / "guide.html").read_text()
+
+
+def test_guide_page_matches_the_guide():
+    """guide.html and hosting.html are built from the markdown files: every heading must be in both."""
+    for md, html in (("GUIDE.md", "guide.html"), ("HOSTING.md", "hosting.html")):
+        page = re.sub(r"<[^>]+>", "", (ROOT / "docs" / html).read_text())          # text only
+        page = " ".join(page.split())
+        for h in re.findall(r"^#{1,3} (.+)$", (ROOT / "docs" / md).read_text(), re.M):
+            plain = re.sub(r"[`*]", "", h).replace("&", "&amp;").replace(">", "&gt;")
+            assert " ".join(plain.split()) in page, f"{html} is out of date: missing '{h}'"
+
+
+def test_the_qr_code_points_at_the_landing_page():
+    svg = (ROOT / "docs" / "qr.svg").read_text()
+    assert svg.startswith("<svg") and "QR code" in svg
 
 
 def test_hosting_files_are_consistent():
@@ -71,3 +93,10 @@ def test_hosting_files_are_consistent():
     assert "deploy/.env" in (ROOT / ".gitignore").read_text().split()
     guide = (ROOT / "docs" / "HOSTING.md").read_text()
     assert "docker compose up -d --build" in guide and "INVITE_CODES" in guide
+
+
+def test_phone_button_uses_one_https_address_and_sharing_points_at_the_landing_page():
+    m = re.search(r'const APP_URL = "([^"]*)";', LANDING)
+    assert m and (m.group(1) == "" or m.group(1).startswith("https://"))                  # empty until the always-on address exists
+    assert 'id="phoneBtn"' in LANDING and 'href="phone.html"' in LANDING                    # the safe default
+    assert 'const SITE = "https://muhumuza684.github.io/callie/";' in LANDING and "wa.me/?text=" in LANDING

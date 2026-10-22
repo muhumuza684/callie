@@ -45,7 +45,7 @@ Luganda is provided by Sunbird AI, a Ugandan non-profit. To switch it on:
 
 1. Create a free account at [api.sunbird.ai](https://api.sunbird.ai) and copy your access token.
 2. Add it to Callie's settings file. Desktop app: open PowerShell and run
-   `Add-Content "$env:APPDATA\Callie\.env" "SUNBIRD_API_TOKEN=YOUR_TOKEN"`. From the source folder, add the same line to `.env`.
+   `Add-Content "$env:APPDATA\Callie\.env" "`nSUNBIRD_API_TOKEN=YOUR_TOKEN"` (the `` `n `` starts a new line, so it never joins the line above). From the source folder, add the same line to `.env`.
 3. Restart Callie. **Oluganda** now appears in the language list when you create a contact.
 
 A Luganda call uses Sunbird for listening, thinking and speaking, so it is a little slower than English and is subject to Sunbird's own usage limits. If the service is unavailable the other languages keep working. The Luganda greeting is a first version: please ask a native speaker to check it.
@@ -74,7 +74,7 @@ Callie is a web app, so a phone can use it without an app store. The phone needs
 
 Then open the link on your phone, allow the microphone and use headphones. Install it from the browser menu: **Install app** on Android Chrome, or **Share > Add to Home Screen** on iPhone Safari.
 
-The link changes every time and works only while your computer and Callie are running. **Do not share it:** anyone who has it can use your Callie.
+The link changes every time and works only while your computer and Callie are running. **Do not share it:** anyone who has it can use your Callie. To protect your free access key, each phone or browser that comes in through a link can start **5 calls a day** (change it with `CALLS_PER_DEVICE_PER_DAY`). Calls you make on the computer itself are never counted. A call that ends within a few seconds does not use up the day.
 
 ## Where your data lives
 
@@ -90,6 +90,7 @@ It holds your key (`.env`), contacts and schedule (`data/store.json`), memory (`
 
 | What happens | What to do |
 |---|---|
+| "Callie is resting right now" or "waking up" | The server is asleep or offline. Wait about a minute and try again. The app still opens and shows your contacts, but calls need the server |
 | Nobody hears me | Check your device's mute key, then open Settings > Microphone: press **Allow microphone** and **Test**. On a phone, make sure the browser is allowed to use the microphone (site settings) and that no other app is using it |
 | "Your connection is weak" | Check your internet. If you use a VPN, switch it off and try again |
 | Only a simple voice | Accept the voice terms (see First run), then restart Callie |
@@ -141,6 +142,7 @@ docs/           landing page (GitHub Pages) and this guide
 | `STT_LANGUAGE`, `STT_HINT` | `en`, names and terms | default language and spelling hints (English) |
 | `TTS_MODE` | `orpheus` | `orpheus` natural English voice, `browser` basic voice |
 | `VOICE_FEMALE`, `VOICE_MALE`, ... | built-in | which voice each type uses |
+| `CALLS_PER_DEVICE_PER_DAY` | `5` | calls one device may start per day when it reaches Callie through a link; `0` turns the limit off |
 | `SUPPORT_EMAILS` | the two support addresses | shown in Settings > Support |
 | `CALLIE_HOME`, `CALLIE_PORT` | per system, `8731` (app) | data folder and port |
 
@@ -156,6 +158,7 @@ The tests also check that every button has a handler, that nothing technical is 
 
 - **On GitHub (recommended):** the launcher's option **6** (or `.\scripts\release.ps1`) tags the number in `VERSION` and pushes the tag. The workflow in `.github/workflows/build.yml` runs the tests, builds the Windows, Mac and Linux apps and attaches them to a Release. Raise `VERSION` for each new release.
 - **On your PC:** `.\scripts\build-exe.ps1` builds `Callie.exe` and copies it to your Desktop.
+- **Docs pages:** `docs/guide.html` and `docs/hosting.html` are made from the markdown files with `python scripts/build-docs.py` (needs `pandoc`). Run it after editing `GUIDE.md` or `HOSTING.md`; the tests fail if they differ.
 - **Move to the desktop app:** `.\scripts\migrate-to-app.ps1` copies your key, contacts and memory into the app's folder.
 
 ## Hosting

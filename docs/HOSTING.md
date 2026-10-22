@@ -15,7 +15,7 @@ On your own computer none of this is active, and nothing about the desktop app c
 - **There is no always-awake free hosting.** The 2026 comparisons I checked (September) put the cheapest always-on options at roughly **$2 to $5 a month**: a small Fly.io machine, or a small server from a provider such as Hetzner. Check the current price before you sign up.
 - **Free plans that sleep when idle** (for example Render's free web service, which sleeps after about 15 minutes without visitors) are a poor fit: the first call after a quiet spell waits a minute while it wakes up.
 - **A domain name** is about $10 a year. A free subdomain from a dynamic-DNS service also works.
-- **The AI services' free tiers are meant for light use.** With more than a few regular people you will reach their limits. Keep `LIMIT_MINUTES_PER_DAY` and `MAX_CONCURRENT_CALLS` modest, and plan to move to a paid plan when usage grows. At the prices I found in October, talking costs roughly ten cents per hour per caller.
+- **The AI services' free tiers are meant for light use.** With more than a few regular people you will reach their limits. Keep `LIMIT_MINUTES_PER_DAY`, `CALLS_PER_DEVICE_PER_DAY` (5 by default) and `MAX_CONCURRENT_CALLS` modest, and plan to move to a paid plan when usage grows. At the prices I found in October, talking costs roughly ten cents per hour per caller.
 
 ## Path A (recommended): a small server with Docker
 
@@ -90,4 +90,5 @@ fly deploy
 | The microphone does not work | You must use the `https://` address |
 | "Callie is busy right now" | `MAX_CONCURRENT_CALLS` is reached, or that person already has a call open |
 | "You've reached today's call time" | `LIMIT_MINUTES_PER_DAY` is used up; it resets the next day |
+| "You've used today's calls on this device" | `CALLS_PER_DEVICE_PER_DAY` is used up on that phone; it resets the next day |
 | Contacts disappeared after an update | The data volume was removed. Restore from your backup |
