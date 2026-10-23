@@ -44,7 +44,7 @@ On Windows, if you see *"Windows protected your PC"*, choose **More info**, then
 
 ## Languages
 
-Callie listens in about 99 languages and answers in the language of each contact: English, Kiswahili, Francais, Espanol, Deutsch, Arabic, Chinese (Mandarin), Hindi and Portuguese. **Luganda** comes from [Sunbird AI](https://sunbird.ai), a Ugandan non-profit: listening, thinking and speaking. It is optional and appears only when a free Sunbird token is configured, and it is isolated, so if that service is slow or down the other languages are not affected. Setup is in the [guide](docs/GUIDE.md#luganda-optional).
+Callie listens in about 99 languages and answers in the language of each contact: English, Kiswahili, Francais, Espanol, Deutsch, Arabic, Chinese (Mandarin), Hindi and Portuguese. **Luganda** comes from [Sunbird AI](https://sunbird.ai), a Ugandan non-profit: listening, thinking and speaking. It is always in the list; calls work once a free Sunbird token is set on the computer or server running Callie, and if that service is slow or down the other languages are not affected. Setup is in the [guide](docs/GUIDE.md#luganda).
 
 ## Run from source
 

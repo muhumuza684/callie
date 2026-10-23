@@ -12,6 +12,8 @@ button{width:100%;padding:14px;border:0;border-radius:14px;background:#22c55e;co
 <img src="icons/icon-192.png" alt=""><h1>Set up Callie</h1>
 <p>Callie needs a free access key to talk. Create one in a minute at <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>, then paste it here. It is saved only on this computer.</p>
 <input id="key" type="password" placeholder="Paste your access key" autocomplete="off">
+<p style="margin-bottom:10px">Optional, for Luganda: a free token from <a href="https://api.sunbird.ai" target="_blank" rel="noopener">api.sunbird.ai</a>. You can leave it empty.</p>
+<input id="sun" type="password" placeholder="Paste your Luganda token (optional)" autocomplete="off">
 <button id="go">Save and start</button><p id="msg"></p><small>Built in Uganda, by Bryt Ma Tech UG</small></div>
 <script>
 const $ = id => document.getElementById(id);
@@ -19,11 +21,12 @@ const ping = () => fetch("/api/ping", { method: "POST" }).catch(() => {}); ping(
 $("go").onclick = async () => {
   $("msg").textContent = "";
   try {
-    const r = await fetch("/api/setup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: $("key").value.trim() }) });
+    const r = await fetch("/api/setup", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key: $("key").value.trim(), ...($("sun").value.trim() ? { sunbird: $("sun").value.trim() } : {}) }) });
     if (r.ok) { location.href = "/"; return; }
-    $("msg").textContent = r.status === 403 ? "Callie is already set up." : "That key doesn't look right. Please check it and try again.";
+    $("msg").textContent = r.status === 403 ? "Callie is already set up." : "One of the keys doesn't look right. Please check it and try again.";
     if (r.status === 403) setTimeout(() => (location.href = "/"), 1200);
   } catch (e) { $("msg").textContent = "Please try again."; }
 };
 $("key").addEventListener("keydown", e => { if (e.key === "Enter") $("go").click(); });
+$("sun").addEventListener("keydown", e => { if (e.key === "Enter") $("go").click(); });
 </script></body></html>

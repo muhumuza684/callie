@@ -36,6 +36,7 @@ const NOTICES = {
   secure: "Callie needs a secure connection to use the microphone. Please open the secure link.",
   config: "Callie is unavailable right now. Please try again later.",
   limit: "You've reached today's call time. Please come back tomorrow.",
+  luganda: "Luganda is not switched on for this Callie yet. Please try another language for now.",
   daily: "You've used today's calls on this device. Please come back tomorrow.",
   generic: "Something went wrong. Please try again.",
 };
@@ -134,7 +135,7 @@ function pickVoice(g = "f", lang = vprof.lang || "en-US") {
   const all = speechSynthesis.getVoices(), base = lang.slice(0, 2).toLowerCase();
   let vs = all.filter(v => v.lang.toLowerCase().startsWith(base));
   if (!vs.length && all.length) {
-    if (base !== "en" && !warnedLang[base]) { warnedLang[base] = 1; toast("This language has no installed voice on your device, so a default voice is used."); }
+    if (base !== "en" && base !== "lg" && !warnedLang[base]) { warnedLang[base] = 1; toast("This language has no installed voice on your device, so a default voice is used."); }
     vs = all.filter(v => v.lang.startsWith("en"));
   }
   if (voiceFailed && vs.some(v => v.localService)) vs = vs.filter(v => v.localService);
@@ -298,9 +299,9 @@ async function startCall(id, answered = false) {
   if (cid !== callId) return;
   ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws/voice?contact=" + encodeURIComponent(id) + "&ref=" + REF);
   ws.binaryType = "arraybuffer";
-  let opened = false; ws.onopen = () => { opened = true; };
+  let opened = false, noticed = null; ws.onopen = () => { opened = true; };
   ws.onmessage = e => (typeof e.data === "string" ? onMsg(JSON.parse(e.data)) : onAudio(e.data));
-  ws.onclose = () => { if (cid === callId && busy) { hangup(false); note("net", opened ? "closed" : "asleep"); toast(opened ? "The call was interrupted. Please try again." : "Callie is resting right now and wakes up in about a minute. Please try again soon."); load().catch(() => {}); } };
+  ws.onclose = () => { if (cid === callId && busy) { hangup(false); note("net", opened ? "closed" : "asleep"); toast(noticed ? (NOTICES[noticed] || NOTICES.generic) : opened ? "The call was interrupted. Please try again." : "Callie is resting right now and wakes up in about a minute. Please try again soon."); load().catch(() => {}); } };
   node.port.onmessage = e => {
     const a = new Int16Array(e.data); let sum = 0;
     for (let i = 0; i < a.length; i++) sum += a[i] * a[i];
@@ -317,7 +318,7 @@ function onMsg(m) {
   if (m.type === "ready") { vprof = m.voice || vprof; voice = pickVoice(vprof.gender); live(); }
   else if (m.type === "say") { if (m.turn >= minTurn) speak(m.text); }
   else if (m.type === "stop") { minTurn = m.turn; stopSpeaking(); }
-  else if (m.type === "notice") { if (m.code === "signin") { location.href = "/login"; return; } note(m.code); $("err").textContent = NOTICES[m.code] || NOTICES.generic; }
+  else if (m.type === "notice") { if (m.code === "signin") { location.href = "/login"; return; } note(m.code); noticed = m.code; $("err").textContent = NOTICES[m.code] || NOTICES.generic; }
 }
 function cleanup() {
   if (wake) { wake.release().catch(() => {}); wake = null; }

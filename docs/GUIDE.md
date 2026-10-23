@@ -36,17 +36,20 @@ For the natural English voices, also accept the voice terms once at
 Tap **+** to create a contact: a name, a voice and a language.
 
 - **Voices:** female, male, girl, boy, baby, adult, old lady, old man, stranger. Girl, boy, baby and the old voices are adult voices shaped to sound younger or older, so they sound like characters. Child-style contacts always stay playful and age-appropriate.
-- **Languages:** English, Kiswahili, Luganda (optional, see below), Francais, Espanol, Deutsch, Arabic, Chinese, Hindi, Portuguese. Callie listens and answers in the contact's language. Natural voices are strongest in English; other languages use a voice installed on your device, except Luganda, which has its own voice.
+- **Languages:** English, Kiswahili, Luganda (needs a free token, see below), Francais, Espanol, Deutsch, Arabic, Chinese, Hindi, Portuguese. Callie listens and answers in the contact's language. Natural voices are strongest in English; other languages use a voice installed on your device, except Luganda, which has its own voice.
 - **Edit** lets you delete contacts. Recents shows your calls, and tapping one calls back.
 
-### Luganda (optional)
+### Luganda
 
-Luganda is provided by Sunbird AI, a Ugandan non-profit. To switch it on:
+Luganda is always in the language list. It is provided by Sunbird AI, a Ugandan non-profit, and calls work once a free Sunbird token is saved the same way as your Groq key. Until then, a Luganda contact says Luganda is not switched on and the other languages keep working.
 
 1. Create a free account at [api.sunbird.ai](https://api.sunbird.ai) and copy your access token.
-2. Add it to Callie's settings file. Desktop app: open PowerShell and run
-   `Add-Content "$env:APPDATA\Callie\.env" "`nSUNBIRD_API_TOKEN=YOUR_TOKEN"` (the `` `n `` starts a new line, so it never joins the line above). From the source folder, add the same line to `.env`.
-3. Restart Callie. **Oluganda** now appears in the language list when you create a contact.
+2. Save it in one of these ways:
+   - **First run of the downloaded app:** paste it in the optional second box on the **Set up Callie** page.
+   - **From the source folder:** choose **8** in the launcher (or run `.\scripts\configure.ps1`). It asks for the Groq key and the Luganda token; press Enter to keep or skip.
+   - **By hand:** add the line `SUNBIRD_API_TOKEN=YOUR_TOKEN` to the `.env` file: for the downloaded app that is `%APPDATA%\Callie\.env`, and from the source folder it is the `.env` next to `Callie.cmd`. They are two different files.
+   - **On a hosted server:** put `SUNBIRD_API_TOKEN` in the server's settings, so every visitor can use Luganda without a token of their own.
+3. Close Callie and start it again. Luganda calls now work.
 
 A Luganda call uses Sunbird for listening, thinking and speaking, so it is a little slower than English and is subject to Sunbird's own usage limits. If the service is unavailable the other languages keep working. The Luganda greeting is a first version: please ask a native speaker to check it.
 
@@ -84,7 +87,7 @@ The link changes every time and works only while your computer and Callie are ru
 | Mac | `~/Library/Application Support/Callie` |
 | Linux | `~/.local/share/Callie` |
 
-It holds your key (`.env`), contacts and schedule (`data/store.json`), memory (`data/memory.json`) and a log file (`logs/callie.log`). Recordings of your voice are never saved. Deleting the folder removes everything.
+It holds your key (`.env`), contacts and schedule (`data/store.json`), memory (`data/memory.json`), a log file (`logs/callie.log`) and the prepared Luganda greeting (`cache/`, the greeting only, never your conversations). Recordings of your voice are never saved. Deleting the folder removes everything.
 
 ## Troubleshooting
 

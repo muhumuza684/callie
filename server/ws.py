@@ -43,6 +43,12 @@ async def handle_voice_socket(ws: WebSocket):
         await ws.close()
         return
     auth.USER.set(uid)
+    wanted = store.contact(ws.query_params.get("contact"))
+    if wanted and wanted.get("lang") == "lg" and not config.SUNBIRD_TOKEN:
+        log.warning("[%s] a Luganda call was refused: SUNBIRD_API_TOKEN is not set on this Callie", ref)
+        await send({"type": "notice", "code": "luganda"})
+        await ws.close()
+        return
     dev = limits.device_key(ws.cookies, ws.headers, ws.client.host if ws.client else None) if limits.is_remote(ws.headers) else None
     why = (limits.device_can_start(dev) if dev else None) or limits.can_start(uid)
     if why:

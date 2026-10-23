@@ -1,7 +1,10 @@
 """Groq client (free tier): Whisper STT, Orpheus TTS, and the LLM fallback chain.
 Failures raise ServiceError(code); the code is all a caller ever sees - details go to the owner's log only."""
+import hashlib
 import json
 import logging
+import time
+from collections import OrderedDict
 from typing import AsyncIterator
 
 import httpx
@@ -40,6 +43,35 @@ def _fail(status: int, body: str, chat: bool = False):
     if status == 429:
         raise ServiceError("busy", "rate limit reached")
     raise ServiceError("generic", f"error {status}: {body[:150]}")
+
+
+_LUG_VOICE: "OrderedDict[str, bytes]" = OrderedDict()      # Luganda greetings already made, so a call opens at once
+_LUG_VOICE_MAX = 30
+_LUG_DISK_MAX = 40
+
+
+def _lug_file(text: str):
+    return config.HOME / "cache" / f"lg-{hashlib.sha1(text.encode()).hexdigest()[:20]}.wav"
+
+
+def _lug_load(text: str):
+    try:
+        data = _lug_file(text).read_bytes()
+        return data or None
+    except OSError:
+        return None
+
+
+def _lug_save(text: str, wav: bytes):
+    try:
+        f = _lug_file(text)
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_bytes(wav)
+        old = sorted(f.parent.glob("lg-*.wav"), key=lambda p: p.stat().st_mtime)
+        for p in old[:-_LUG_DISK_MAX]:
+            p.unlink(missing_ok=True)
+    except OSError:
+        pass                                   # a full disk must never break a call
 
 
 class GroqClient:
@@ -108,7 +140,10 @@ class GroqClient:
 
     async def transcribe(self, pcm: bytes, lang: str | None = None) -> str:
         if lang == "lg":
-            return await self._sunbird_stt(pcm)
+            t0 = time.monotonic()
+            text = await self._sunbird_stt(pcm)
+            log.info("Luganda listening took %.1fs", time.monotonic() - t0)
+            return text
         language = lang or config.STT_LANGUAGE
         data = {"model": config.STT_MODEL, "temperature": "0", "response_format": "verbose_json"}
         if language:
@@ -195,10 +230,26 @@ class GroqClient:
         if not sent:
             raise ServiceError("generic", f"{prov}:{model} returned an empty answer")
 
-    async def speak(self, text: str, voice: str | None = None, lang: str | None = None) -> bytes:
-        """Natural voice. English: Orpheus (max ~200 chars per request). Luganda: Sunbird. Returns WAV bytes."""
+    async def speak(self, text: str, voice: str | None = None, lang: str | None = None, keep: bool = False) -> bytes:
+        """Natural voice. English: Orpheus (max ~200 chars per request). Luganda: Sunbird. Returns WAV bytes.
+        keep=True is used only for the fixed greeting: it is remembered (memory and disk) so later calls open at once.
+        What the AI says in a conversation is never kept."""
         if lang == "lg":
-            return await self._sunbird_tts(text)
+            if keep and text in _LUG_VOICE:
+                _LUG_VOICE.move_to_end(text)
+                return _LUG_VOICE[text]
+            if keep and (saved := _lug_load(text)):
+                _LUG_VOICE[text] = saved
+                return saved
+            t0 = time.monotonic()
+            wav = await self._sunbird_tts(text)
+            log.info("Luganda voice made in %.1fs", time.monotonic() - t0)
+            if keep and len(text) <= 200:
+                _LUG_VOICE[text] = wav
+                while len(_LUG_VOICE) > _LUG_VOICE_MAX:
+                    _LUG_VOICE.popitem(last=False)
+                _lug_save(text, wav)
+            return wav
         body = {"model": config.TTS_MODEL, "voice": voice or config.TTS_VOICE, "input": text, "response_format": "wav"}
         try:
             r = await self.http.post(f"{BASE}/audio/speech", json=body)

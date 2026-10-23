@@ -13,11 +13,10 @@ def client_with(handler):
     return GroqClient(transport=httpx.MockTransport(handler))
 
 
-def test_german_is_offered_and_luganda_only_when_configured(monkeypatch):
-    monkeypatch.setattr(config, "SUNBIRD_TOKEN", "")
-    assert "de" in config.languages_available() and "lg" not in config.languages_available()
-    monkeypatch.setattr(config, "SUNBIRD_TOKEN", "tok")
-    assert "lg" in config.languages_available()
+def test_german_and_luganda_are_always_offered(monkeypatch):
+    for token in ("", "tok"):
+        monkeypatch.setattr(config, "SUNBIRD_TOKEN", token)
+        assert "de" in config.languages_available() and "lg" in config.languages_available()
     assert "Hallo" in config.greeting_for({"name": "Anna", "lang": "de"})
 
 
@@ -132,7 +131,7 @@ def test_luganda_call_speaks_through_sunbird_without_reading_out_mood_tags(monke
             asked.append((lang, messages))
             yield "[cheerful] Bulungi nnyo. "
 
-        async def speak(self, text, voice=None, lang=None):
+        async def speak(self, text, voice=None, lang=None, keep=False):
             spoken.append((text, lang))
             return b"RIFFfake"
 
@@ -158,3 +157,138 @@ def test_luganda_call_speaks_through_sunbird_without_reading_out_mood_tags(monke
     assert len(blobs) == 1 and spoken == [("Bulungi nnyo.", "lg")]
     system_note = asked[0][1][-1]["content"]
     assert "square brackets" not in system_note                    # mood directions are only for the English voice
+
+
+def test_luganda_voice_clips_are_remembered_so_the_second_call_is_instant(monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "HOME", tmp_path)
+    from server import groq
+    monkeypatch.setattr(config, "SUNBIRD_TOKEN", "tok")
+    monkeypatch.setattr(groq, "_LUG_VOICE", groq.OrderedDict())
+    seen = []
+
+    def handler(req):
+        seen.append(req.url.path)
+        if req.method == "POST":
+            return httpx.Response(200, json={"audio_url": "https://files.example/a.wav"})
+        return httpx.Response(200, content=b"RIFFaudio")
+
+    async def go():
+        g = client_with(handler)
+        a = await g.speak("Oli otya", None, lang="lg", keep=True)
+        before = len(seen)
+        b = await g.speak("Oli otya", None, lang="lg", keep=True)
+        await g.close()
+        return a, b, before
+
+    a, b, before = asyncio.run(go())
+    assert a == b == b"RIFFaudio" and before == 2 and len(seen) == 2       # the second time nothing was sent to Sunbird
+
+
+def test_the_luganda_cache_stays_small(monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "HOME", tmp_path)
+    from server import groq
+    monkeypatch.setattr(config, "SUNBIRD_TOKEN", "tok")
+    monkeypatch.setattr(groq, "_LUG_VOICE", groq.OrderedDict())
+    monkeypatch.setattr(groq, "_LUG_VOICE_MAX", 3)
+
+    def handler(req):
+        return httpx.Response(200, json={"audio_url": "https://files.example/a.wav"}) if req.method == "POST" else httpx.Response(200, content=b"x")
+
+    async def go():
+        g = client_with(handler)
+        for i in range(6):
+            await g.speak(f"phrase {i}", None, lang="lg", keep=True)
+        await g.close()
+
+    asyncio.run(go())
+    assert list(groq._LUG_VOICE) == ["phrase 3", "phrase 4", "phrase 5"]
+
+
+def test_greetings_are_prepared_ahead_of_time_only_for_luganda_contacts(monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "HOME", tmp_path)
+    from pipeline.runner import prewarm_luganda
+    from server import groq
+    monkeypatch.setattr(config, "SUNBIRD_TOKEN", "tok")
+    monkeypatch.setattr(groq, "_LUG_VOICE", groq.OrderedDict())
+    posts = []
+
+    def handler(req):
+        if req.method == "POST":
+            posts.append(1)
+            return httpx.Response(200, json={"audio_url": "https://files.example/a.wav"})
+        return httpx.Response(200, content=b"x")
+
+    contacts = [{"name": "Nalu", "lang": "lg", "voice": "female"}, {"name": "Anna", "lang": "de", "voice": "female"}]
+    asyncio.run(prewarm_luganda(contacts, transport=httpx.MockTransport(handler)))
+    assert len(posts) == 1 and len(groq._LUG_VOICE) == 1                  # German is untouched
+    monkeypatch.setattr(config, "SUNBIRD_TOKEN", "")
+    asyncio.run(prewarm_luganda(contacts, transport=httpx.MockTransport(lambda r: 1 / 0)))     # no token: nothing is attempted
+
+
+def test_a_failed_preparation_never_breaks_startup(monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "HOME", tmp_path)
+    from pipeline.runner import prewarm_luganda
+    monkeypatch.setattr(config, "SUNBIRD_TOKEN", "tok")
+    asyncio.run(prewarm_luganda([{"name": "Nalu", "lang": "lg", "voice": "female"}], transport=httpx.MockTransport(lambda r: httpx.Response(500))))
+
+
+def test_only_the_greeting_is_remembered_never_what_is_said_in_a_conversation(monkeypatch, tmp_path):
+    from server import groq
+    monkeypatch.setattr(config, "SUNBIRD_TOKEN", "tok")
+    monkeypatch.setattr(config, "HOME", tmp_path)
+    monkeypatch.setattr(groq, "_LUG_VOICE", groq.OrderedDict())
+    posts = []
+
+    def handler(req):
+        if req.method == "POST":
+            posts.append(1)
+            return httpx.Response(200, json={"audio_url": "https://files.example/a.wav"})
+        return httpx.Response(200, content=b"RIFFaudio")
+
+    async def go():
+        g = client_with(handler)
+        await g.speak("a private reply", None, lang="lg")                 # a conversation line
+        await g.speak("a private reply", None, lang="lg")
+        await g.speak("Oli otya, nze Nalu", None, lang="lg", keep=True)   # the greeting
+        await g.close()
+
+    asyncio.run(go())
+    assert len(posts) == 3                                                # the conversation line was made both times
+    assert list(groq._LUG_VOICE) == ["Oli otya, nze Nalu"]
+    assert len(list((tmp_path / "cache").glob("lg-*.wav"))) == 1
+
+
+def test_a_saved_greeting_is_used_after_a_restart_and_the_disk_cache_stays_small(monkeypatch, tmp_path):
+    from server import groq
+    monkeypatch.setattr(config, "SUNBIRD_TOKEN", "tok")
+    monkeypatch.setattr(config, "HOME", tmp_path)
+    monkeypatch.setattr(groq, "_LUG_DISK_MAX", 3)
+    monkeypatch.setattr(groq, "_LUG_VOICE", groq.OrderedDict())
+    calls = []
+
+    def handler(req):
+        calls.append(req.method)
+        return httpx.Response(200, json={"audio_url": "https://files.example/a.wav"}) if req.method == "POST" else httpx.Response(200, content=b"RIFFaudio")
+
+    async def go(texts):
+        g = client_with(handler)
+        for t in texts:
+            await g.speak(t, None, lang="lg", keep=True)
+        await g.close()
+
+    asyncio.run(go(["one"]))
+    monkeypatch.setattr(groq, "_LUG_VOICE", groq.OrderedDict())            # the app was closed and opened again
+    before = len(calls)
+    asyncio.run(go(["one"]))
+    assert len(calls) == before                                           # read from disk, Sunbird was not asked
+    asyncio.run(go(["two", "three", "four", "five"]))
+    assert len(list((tmp_path / "cache").glob("lg-*.wav"))) == 3
+
+
+def test_luganda_gets_more_time_to_listen_and_no_wrong_language_filler():
+    import pathlib
+    src = (pathlib.Path(__file__).resolve().parent.parent / "pipeline" / "runner.py").read_text()
+    assert "STT_TIMEOUTS_LG = (20, 30)" in src and 'STT_TIMEOUTS_LG if self.lang == "lg"' in src
+    assert 'if self.lang == "lg":' in src.split("async def _filler")[1].split("async def remember")[0]
+    app = (pathlib.Path(__file__).resolve().parent.parent / "client" / "pwa" / "app.js").read_text()
+    assert 'base !== "lg"' in app

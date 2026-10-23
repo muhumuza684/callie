@@ -13,3 +13,7 @@ dist/
 build/
 *.exe
 deploy/.env
+session.key
+usage.json
+users/
+cache/

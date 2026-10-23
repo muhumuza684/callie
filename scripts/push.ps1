@@ -13,7 +13,7 @@ if (-not (git config user.email)) { git config user.email (Read-Host "Your GitHu
 git config core.safecrlf false      # hides the harmless "LF will be replaced by CRLF" notes
 
 # safety: never publish your key or personal data
-$private = @(git ls-files .env data/store.json data/memory.json data/profile.json tools)
+$private = @(git ls-files .env session.key usage.json users data/store.json data/memory.json data/profile.json tools)
 if ($private.Count -gt 0) {
     Write-Host "Removing private files from git (they stay on your disk): $($private -join ', ')" -ForegroundColor Yellow
     git rm --cached -r -q -- $private 2>$null

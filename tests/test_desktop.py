@@ -46,3 +46,26 @@ def test_setup_keeps_other_settings(tmp_path, monkeypatch):
     assert client.post("/api/setup", json={"key": "gsk_" + "c" * 30}).status_code == 200
     text = env.read_text()
     assert "STT_LANGUAGE=fr" in text and text.count("GROQ_API_KEY=") == 1
+
+
+def test_setup_can_also_save_the_luganda_token(tmp_path, monkeypatch):
+    env = tmp_path / ".env"
+    monkeypatch.setattr(config, "ENV_PATH", env)
+    monkeypatch.setattr(config, "GROQ_API_KEY", "")
+    monkeypatch.setattr(config, "SUNBIRD_TOKEN", "")
+    monkeypatch.delenv("SUNBIRD_API_TOKEN", raising=False)
+    token = "a" * 20 + "." + "b" * 20 + "." + "c" * 20
+    for bad in ("hello", "a.b", token + "\nGROQ_API_KEY=evil"):
+        assert client.post("/api/setup", json={"key": "gsk_" + "d" * 30, "sunbird": bad}).status_code == 400
+    assert not env.exists()                                            # a bad token saves nothing, not even the Groq key
+    assert client.post("/api/setup", json={"key": "gsk_" + "d" * 30, "sunbird": token}).status_code == 200
+    text = env.read_text()
+    assert f"SUNBIRD_API_TOKEN={token}" in text and "GROQ_API_KEY=gsk_" in text and config.SUNBIRD_TOKEN == token
+
+
+def test_the_token_is_optional_and_the_settings_screen_has_no_luganda_row():
+    root = Path(__file__).resolve().parent.parent / "client" / "pwa"
+    assert "Luganda" not in (root / "index.html").read_text().split('id="settings"')[1].split("About Callie")[0]
+    assert "setup/luganda" not in (root / "app.js").read_text()
+    assert 'id="sun"' in (root / "setup.html").read_text()
+    assert client.get("/api/state").json().get("owner") is None         # nothing about keys is shown by the app

@@ -64,10 +64,12 @@ if ($Mode -eq "menu") {
     Write-Host "  5) Save and push to GitHub"
     Write-Host "  6) Publish a release (GitHub builds the apps)"
     Write-Host "  7) Free up disk space"
+    Write-Host "  8) Change access keys (Groq, Luganda)"
     $c = Read-Host "Choose (Enter = 1)"
-    $Mode = switch ($c) { "2" { "phone" } "3" { "folder" } "4" { "code" } "5" { "push" } "6" { "release" } "7" { "clean" } default { "pc" } }
+    $Mode = switch ($c) { "2" { "phone" } "3" { "folder" } "4" { "code" } "5" { "push" } "6" { "release" } "7" { "clean" } "8" { "keys" } default { "pc" } }
 }
 if ($Mode -eq "release") { & "$Root\scripts\release.ps1"; return }
+if ($Mode -eq "keys") { & "$Root\scripts\configure.ps1"; return }
 if ($Mode -eq "clean") { & "$Root\scripts\clean.ps1"; return }
 if ($Mode -eq "push") { & "$Root\scripts\push.ps1"; return }
 if ($Mode -eq "folder") { Start-Process explorer.exe $Root; return }

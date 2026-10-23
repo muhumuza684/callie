@@ -17,3 +17,7 @@ deploy
 *.zip
 *.exe
 .env
+session.key
+usage.json
+users
+cache

@@ -1,5 +1,6 @@
 """Voice AI server. NOTE: static mount MUST come after API/WebSocket routes,
 otherwise the "/" mount swallows /health and /ws/voice."""
+import asyncio
 import logging
 import os
 import time
@@ -16,6 +17,7 @@ from typing import Literal
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
 
+from pipeline.runner import prewarm_luganda
 from server import auth, config, limits, memory, store
 from server.ws import handle_voice_socket
 
@@ -33,6 +35,12 @@ logging.getLogger().addHandler(_fh)
 
 # no public API documentation: the inside of the system is not advertised
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+
+
+@app.on_event("startup")
+async def _prepare_luganda():
+    if not config.HOSTED:                      # a hosted server keeps each person's contacts apart, so it prepares them per call
+        asyncio.get_running_loop().create_task(prewarm_luganda(store.load()["contacts"]))
 
 
 @app.exception_handler(RequestValidationError)
@@ -71,7 +79,10 @@ async def state():
 
 @app.post("/api/contacts")
 async def new_contact(c: ContactIn):
-    return store.add_contact(c.name, c.voice, c.lang)
+    made = store.add_contact(c.name, c.voice, c.lang)
+    if c.lang == "lg" and not config.HOSTED:
+        asyncio.get_running_loop().create_task(prewarm_luganda([made]))
+    return made
 
 
 @app.delete("/api/contacts/{cid}")
@@ -210,13 +221,25 @@ async def ping():
 
 class SetupIn(BaseModel):
     key: str = Field(min_length=20, max_length=200, pattern=r"^gsk_[A-Za-z0-9_\-]+$")
+    sunbird: str | None = Field(default=None, min_length=40, max_length=3000, pattern=r"^[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+$")   # optional, for Luganda
+
+
+def _write_env(name: str, value: str):
+    lines = config.ENV_PATH.read_text().splitlines() if config.ENV_PATH.exists() else []
+    lines = [ln for ln in lines if not ln.startswith(f"{name}=")] + [f"{name}={value}"]
+    config.ENV_PATH.parent.mkdir(parents=True, exist_ok=True)
+    config.ENV_PATH.write_text("\n".join(lines) + "\n")
 
 
 def _write_env_key(key: str):
-    lines = config.ENV_PATH.read_text().splitlines() if config.ENV_PATH.exists() else []
-    lines = [ln for ln in lines if not ln.startswith("GROQ_API_KEY=")] + [f"GROQ_API_KEY={key}"]
-    config.ENV_PATH.parent.mkdir(parents=True, exist_ok=True)
-    config.ENV_PATH.write_text("\n".join(lines) + "\n")
+    _write_env("GROQ_API_KEY", key)
+
+
+def _is_owner(request: Request) -> bool:
+    """True only for someone using Callie on this very computer: never through a shared link, never on a hosted server."""
+    shared = any(h in request.headers for h in ("x-forwarded-for", "cf-connecting-ip", "forwarded"))
+    local = request.client is not None and request.client.host in ("127.0.0.1", "::1", "testclient")
+    return local and not shared and not config.HOSTED
 
 
 @app.get("/setup")
@@ -226,15 +249,18 @@ async def setup_page():
 
 @app.post("/api/setup")
 async def setup(body: SetupIn, request: Request):
-    """First run only, from this computer only (never through a shared link): saves the access key."""
-    shared = any(h in request.headers for h in ("x-forwarded-for", "cf-connecting-ip", "forwarded"))
-    local = request.client is not None and request.client.host in ("127.0.0.1", "::1", "testclient")
-    if config.GROQ_API_KEY or shared or not local or config.HOSTED:
+    """First run only, from this computer only (never through a shared link): saves the access key (and the optional Luganda token)."""
+    if config.GROQ_API_KEY or not _is_owner(request):
         raise HTTPException(403, "closed")
     _write_env_key(body.key)
     config.GROQ_API_KEY = body.key
     os.environ["GROQ_API_KEY"] = body.key
+    if body.sunbird:
+        _write_env("SUNBIRD_API_TOKEN", body.sunbird)
+        config.SUNBIRD_TOKEN = body.sunbird
+        os.environ["SUNBIRD_API_TOKEN"] = body.sunbird
     return {"ok": True}
+
 
 
 @app.websocket("/ws/voice")

@@ -34,6 +34,7 @@ REMINDER = ("Voice call. Usually answer in one or two short spoken sentences. If
             "If unsure of a fact, say so instead of inventing details. If the words don't make sense, say you didn't catch that. "
             "No markdown, tables, lists, headings or emojis.")
 SHORT_NOISE = {"thank you", "thanks", "yeah", "yes", "oh", "so", "okay", "ok", "uh", "um", "hmm"}
+STT_TIMEOUTS_LG = (20, 30)    # Sunbird can take longer: wait for it rather than fail the turn
 STT_TIMEOUTS = (8, 12)   # seconds: try, then retry once, so a stalled connection never freezes the call
 FILLER_AFTER = 4.0       # say 'One moment.' if nothing has happened this long after you stop
 HOLD_SECONDS = 1.0       # wait this long after an unfinished-sounding phrase ("I think...")
@@ -85,6 +86,23 @@ def pack_chunks(sentences, limit: int = 190):
     if cur:
         chunks.append(cur)
     return chunks
+
+
+async def prewarm_luganda(contacts, transport=None):
+    """Makes each Luganda contact's greeting before anyone calls, so the first call is not silent while Sunbird works."""
+    if not config.SUNBIRD_TOKEN:
+        return
+    greetings = [c for c in {config.greeting_for(c) for c in contacts if c.get("lang") == "lg"} if c]
+    if not greetings:
+        return
+    g = GroqClient(transport=transport)
+    try:
+        for chunk in pack_chunks(greetings):
+            await g.speak(chunk, None, lang="lg", keep=True)
+    except Exception as e:
+        log.warning("Luganda greeting could not be prepared ahead of time (%s); it will be made when a call starts", str(e) or type(e).__name__)
+    finally:
+        await g.close()
 
 
 class VoiceSession:
@@ -143,7 +161,7 @@ class VoiceSession:
         if not greeting:
             return
         if self.natural():
-            self.task = asyncio.get_running_loop().create_task(self.speak_chunks(self.turn_id, [greeting], 0.0))
+            self.task = asyncio.get_running_loop().create_task(self.speak_chunks(self.turn_id, [greeting], 0.0, keep=True))
         else:
             await self.send({"type": "say", "turn": self.turn_id, "text": plain(greeting)})
 
@@ -154,9 +172,10 @@ class VoiceSession:
             return bool(config.SUNBIRD_TOKEN)
         return config.TTS_MODE == "orpheus" and self.en and not VoiceSession.voice_blocked
 
-    async def speak_chunks(self, tid: int, sentences, t0: float):
+    async def speak_chunks(self, tid: int, sentences, t0: float, keep: bool = False):
         chunks = pack_chunks(sentences)
-        tasks = [asyncio.get_running_loop().create_task(self.groq.speak(c, self.voice, **({"lang": "lg"} if self.lang == "lg" else {}))) for c in chunks]
+        kw = {"lang": "lg", **({"keep": True} if keep else {})} if self.lang == "lg" else {}
+        tasks = [asyncio.get_running_loop().create_task(self.groq.speak(c, self.voice, **kw)) for c in chunks]
         for t in tasks:
             t.add_done_callback(lambda f: f.cancelled() or f.exception())
         try:
@@ -185,7 +204,7 @@ class VoiceSession:
                 t.cancel()
 
     async def hear(self, pcm: bytes) -> str:
-        for timeout in STT_TIMEOUTS:
+        for timeout in (STT_TIMEOUTS_LG if self.lang == "lg" else STT_TIMEOUTS):
             try:
                 return await asyncio.wait_for(self.groq.transcribe(pcm, self.lang), timeout)
             except (asyncio.TimeoutError, TimeoutError):
@@ -194,6 +213,8 @@ class VoiceSession:
 
     async def _filler(self, tid: int):
         await asyncio.sleep(FILLER_AFTER)
+        if self.lang == "lg":                  # no device has a Luganda voice: an English voice reading Luganda would only confuse
+            return
         await self.send({"type": "say", "turn": tid, "text": config.lang_info(self.lang)["wait"]})
 
     async def remember(self):
