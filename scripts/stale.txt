@@ -9,3 +9,4 @@ requirements-ai.txt
 requirements-audio.txt
 tests/test_audio.py
 data/recordings
+tests/test_luganda_setup.py

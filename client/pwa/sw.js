@@ -1,6 +1,6 @@
 // Keeps Callie installable and lets it open even when the server is asleep or offline.
 // The app files and the last contact list are kept on the device; calls themselves always need the server.
-const CACHE = "callie-v40";
+const CACHE = "callie-v41";
 const SHELL = ["/", "/app.js", "/style.css", "/worklet.js", "/manifest.json",
   "/icons/icon-192.png", "/icons/icon-512.png", "/icons/maskable-512.png", "/icons/apple-touch-icon.png"];
 const KEEP_API = ["/api/state"];                       // the contact list, so the app is not empty while waiting
